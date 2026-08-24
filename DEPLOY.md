@@ -21,8 +21,18 @@ setup for no benefit. Create a minimal container and run one script:
 That installs Node from the distro's own packages (Debian 12 and Ubuntu 24.04
 both ship Node 18+ — no third-party repo needed), fetches the app to
 `/opt/seat-draft`, creates a locked-down `seatdraft` service user, installs the
-systemd service, starts it, and prints the three URLs. **Safe to re-run any
-time** — that's also how you upgrade.
+systemd service, starts it, and prints the three URLs.
+
+**To update later**, run the update script — it fetches the latest code and
+reinstalls, keeping your saved layout and your service settings:
+
+```bash
+sh /opt/seat-draft/deploy/update.sh
+```
+
+It works however the app was first installed (cloned or copied across), and if
+the container can't reach GitHub it prints the laptop fallback instead of
+half-updating.
 
 Prefer to read before you pipe to sh? Clone the repo inside the container and
 run `./deploy/install.sh` — it installs the local checkout instead of cloning.
