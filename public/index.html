@@ -1,0 +1,207 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0e1116">
+<title>Seat Draft</title>
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/app.css">
+<style>
+  body { display: flex; align-items: center; justify-content: center; padding: 20px 0 40px; }
+  .wrap-narrow { width: 100%; }
+  #codeInput {
+    font-family: var(--mono); font-size: 30px; font-weight: 700;
+    letter-spacing: .28em; text-indent: .28em; text-align: center; text-transform: uppercase;
+  }
+  .waiting-dot {
+    width: 10px; height: 10px; border-radius: 50%; background: var(--good);
+    animation: pulse 1.6s ease-in-out infinite;
+  }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: .25; } }
+  .big-name { font-size: 30px; font-weight: 700; letter-spacing: -.02em; }
+
+  /* --- sprint --- */
+  .qmeta { display: flex; justify-content: space-between; align-items: baseline; font-weight: 700; }
+  .qmeta .of { color: var(--ink-dim); font-size: 14px; }
+  .clock { font-family: var(--mono); font-size: 15px; font-weight: 700; color: var(--ink-dim); }
+  .clock.low { color: var(--bad); }
+  .qbar { height: 5px; border-radius: 3px; background: var(--panel-2); overflow: hidden; }
+  .qbar > i { display: block; height: 100%; background: var(--accent); transition: width .25s linear; }
+  .question {
+    font-size: clamp(40px, 13vw, 62px); font-weight: 800; letter-spacing: -.03em;
+    text-align: center; padding: 26px 0 6px;
+  }
+  /* The sprint fills the screen: question up top where the eye is, options in
+     the bottom half where thumbs already are. Tapping speed is the game. */
+  #sprintView { width: 100%; }
+  #sprintView .panel { min-height: calc(100dvh - 44px); display: flex; flex-direction: column; }
+  #question { flex: 1; display: flex; align-items: center; justify-content: center; }
+  .options { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .opt {
+    font-size: 30px; font-weight: 700; font-family: var(--mono);
+    padding: 34px 8px; border-radius: 14px;
+  }
+  .opt.right { background: var(--good); color: #04240f; border-color: transparent; }
+  .opt.wrong { background: var(--bad); color: #2b0505; border-color: transparent; }
+  .opt:disabled { opacity: 1; } /* locked after tapping, but must stay readable */
+  .verdict { font-size: 15px; font-weight: 700; min-height: 22px; text-align: center; }
+  .verdict.right { color: var(--good); }
+  .verdict.wrong { color: var(--bad); }
+
+  /* --- your result --- */
+  .rank-num { font-size: 64px; font-weight: 800; letter-spacing: -.04em; line-height: 1; }
+  .score-line { font-size: 20px; font-weight: 700; }
+
+  /* --- draft --- */
+  .tier-badge {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: rgba(77,157,255,.14); border: 1px solid var(--accent);
+    color: var(--accent); border-radius: 999px; padding: 7px 15px;
+    font-weight: 700; font-size: 14px;
+  }
+  #turnView .panel { min-height: calc(100dvh - 44px); display: flex; flex-direction: column; gap: 14px; }
+  .turn-clock { font-family: var(--mono); font-size: 40px; font-weight: 800; }
+  .turn-clock.low { color: var(--bad); }
+  .seat-opts { flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 12px; }
+  .seat-opt {
+    display: flex; flex-direction: column; align-items: center; gap: 5px;
+    padding: 22px 12px; border-radius: 14px; font-weight: 700;
+    border: 1px solid var(--accent); background: rgba(77,157,255,.09); color: var(--ink);
+  }
+  .seat-opt .nm { font-size: 27px; letter-spacing: -.02em; }
+  .seat-opt .pk { font-size: 13px; font-weight: 600; color: var(--ink-dim); }
+  .seat-opt:disabled { opacity: .4; }
+  .my-seat { font-size: 52px; font-weight: 800; letter-spacing: -.03em; line-height: 1; }
+</style>
+</head>
+<body>
+<div id="conn" class="conn hidden">Reconnecting…</div>
+
+<div class="wrap-narrow stack">
+
+  <!-- join form -->
+  <section id="joinView" class="stack">
+    <div class="center stack" style="gap:6px; margin-bottom:6px">
+      <h1 style="font-size:26px">Seat Draft</h1>
+      <p class="muted small">Enter the code on the big screen.</p>
+    </div>
+
+    <div class="panel stack">
+      <div>
+        <label class="field-label" for="codeInput">Room code</label>
+        <input type="text" id="codeInput" maxlength="4" autocomplete="off"
+               autocapitalize="characters" spellcheck="false" inputmode="text" placeholder="····">
+      </div>
+      <div>
+        <label class="field-label" for="nameInput">Your name</label>
+        <input type="text" id="nameInput" maxlength="24" autocomplete="name" placeholder="How the room knows you">
+      </div>
+      <button id="joinBtn" class="primary block">Join</button>
+      <div id="joinErr" class="notice err hidden"></div>
+    </div>
+  </section>
+
+  <!-- lobby -->
+  <section id="lobbyView" class="stack hidden">
+    <div class="panel center stack" style="gap:14px; padding:30px 20px">
+      <div class="row" style="justify-content:center; gap:9px">
+        <span class="waiting-dot"></span>
+        <span class="small muted" style="font-weight:600">You're in</span>
+      </div>
+      <div id="myName" class="big-name"></div>
+      <p class="muted small">Keep this screen open. The game starts on the big screen.</p>
+    </div>
+
+    <div class="panel center">
+      <div style="font-size:26px; font-weight:700"><span id="playerCount">0</span></div>
+      <div class="muted small">people joined so far</div>
+    </div>
+
+    <button id="leaveBtn" class="tiny" style="align-self:center; background:none; border:none; color:var(--ink-dim)">
+      Not you? Leave
+    </button>
+  </section>
+
+  <!-- maths sprint -->
+  <section id="sprintView" class="stack hidden">
+    <div class="panel stack" style="gap:14px">
+      <div class="qmeta">
+        <span>Question <span id="qNum">1</span><span class="of"> / <span id="qTotal">10</span></span></span>
+        <span id="clock" class="clock">1:30</span>
+      </div>
+      <div class="qbar"><i id="qbar" style="width:0%"></i></div>
+      <div id="question" class="question">—</div>
+      <div id="options" class="options"></div>
+      <div id="verdict" class="verdict"></div>
+    </div>
+  </section>
+
+  <!-- finished, waiting for the room -->
+  <section id="waitView" class="stack hidden">
+    <div class="panel center stack" style="gap:14px; padding:34px 20px">
+      <div style="font-size:40px">✓</div>
+      <div class="big-name">All done</div>
+      <p class="muted small">Scores go up on the big screen once everyone finishes.</p>
+      <div class="row" style="justify-content:center; gap:9px">
+        <span class="waiting-dot"></span>
+        <span class="small muted" style="font-weight:600"><span id="waitCount">0</span> still answering</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- your result -->
+  <section id="resultView" class="stack hidden">
+    <div class="panel center stack" style="gap:10px; padding:30px 20px">
+      <div class="muted small" style="font-weight:600; letter-spacing:.1em">YOU FINISHED</div>
+      <div id="myRank" class="rank-num">–</div>
+      <div id="myScore" class="score-line"></div>
+      <div id="myTime" class="muted small"></div>
+      <p class="muted small" style="margin-top:8px">Watch the big screen for the tiers.</p>
+    </div>
+  </section>
+
+  <!-- waiting for your turn -->
+  <section id="draftWaitView" class="stack hidden">
+    <div class="panel center stack" style="gap:14px; padding:30px 20px">
+      <div id="myTier" class="tier-badge" style="align-self:center"></div>
+      <div class="muted small" style="font-weight:600; letter-spacing:.1em; margin-top:6px">PICKING NOW</div>
+      <div class="big-name" id="whoPicking">—</div>
+      <p class="muted small"><span id="seatedCount">0</span> of <span id="seatTotal">0</span> seated. Your turn is coming.</p>
+    </div>
+  </section>
+
+  <!-- your turn -->
+  <section id="turnView" class="stack hidden">
+    <div class="panel">
+      <div class="row spread">
+        <span style="font-weight:800; font-size:19px">Your pick</span>
+        <span id="turnClock" class="turn-clock">15</span>
+      </div>
+      <div class="seat-opts" id="seatOpts"></div>
+      <p class="muted small center">Tap a desk to claim it. If the clock runs out you'll get one of these anyway.</p>
+    </div>
+  </section>
+
+  <!-- your desk -->
+  <section id="seatedView" class="stack hidden">
+    <div class="panel center stack" style="gap:12px; padding:34px 20px">
+      <div class="muted small" style="font-weight:600; letter-spacing:.1em">YOUR DESK</div>
+      <div id="mySeat" class="my-seat">—</div>
+      <div id="mySeatPerk" class="muted"></div>
+      <div id="mySeatNote" class="muted small" style="margin-top:8px"></div>
+    </div>
+  </section>
+
+  <!-- kicked / replaced -->
+  <section id="doneView" class="stack hidden">
+    <div class="panel center stack" style="gap:12px; padding:30px 20px">
+      <div id="doneMsg" style="font-weight:600"></div>
+      <button id="againBtn" class="primary">Join again</button>
+    </div>
+  </section>
+
+</div>
+<script type="module" src="/join.js"></script>
+</body>
+</html>
