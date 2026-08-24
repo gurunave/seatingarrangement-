@@ -134,9 +134,11 @@
     margin: 0 auto;
   }
   .map .desk { font-size: 13px; position: relative; }
+  /* The facing arrow has to read from the back of the room, not just up close. */
   .map .face-arrow {
-    position: absolute; top: 4px; right: 6px;
-    font-size: 11px; color: var(--ink-dim); line-height: 1;
+    position: absolute; top: 5px; right: 7px;
+    font-size: clamp(13px, 1.1vw, 18px); color: var(--accent); line-height: 1;
+    text-shadow: 0 0 6px rgba(0,0,0,.6);
   }
   .map .desk .dname { font-size: 11px; color: var(--ink-dim); font-weight: 700; }
   .map .desk .who { font-size: 13px; font-weight: 700; line-height: 1.1; }
