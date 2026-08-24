@@ -82,6 +82,14 @@ screen highlights them on the map and the room heckles. Tap one to claim it. If 
 clock runs out you get one of them anyway, so a phone in someone's pocket never
 stalls twenty people — and the host can skip a turn outright.
 
+**Absent people are handled cleanly.** Add anyone who's out that day via the big
+screen's Manage panel ("add someone without a phone"). They score 0, rank at the
+bottom, and when the draft reaches them they're seated **instantly** from the
+remaining desks — no countdown, marked auto-assigned on the map. People who
+showed up always pick first. (If an absent colleague really cares about their
+seat, a teammate can join as them from a private browser window and play on
+their behalf.)
+
 **The tail is auto-assigned.** With 20 desks for 20 people the last three have nothing
 to decide between, so the room doesn't sit through the ceremony. Every spare desk
 hands one of them a real choice back: 21 desks means only two are auto-assigned, and

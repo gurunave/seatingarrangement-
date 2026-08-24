@@ -213,6 +213,19 @@ export function beginTurn(room) {
   }
 
   const seat = draft.order[draft.index];
+
+  // An absent person (added from the host screen, never claimed by a phone)
+  // has nobody to pick for them — assign instantly instead of making the
+  // room watch a countdown that can only ever time out.
+  if (room.players.get(seat.id)?.manual) {
+    const deskId = sampleDesks(remainingDeskIds(room), 1)[0];
+    if (deskId) {
+      draft.assignments.set(deskId, { playerId: seat.id, name: seat.name, auto: true });
+    }
+    draft.index++;
+    return beginTurn(room);
+  }
+
   const options = sampleDesks(remainingDeskIds(room), seat.options);
   draft.current = {
     playerId: seat.id,

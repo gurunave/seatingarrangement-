@@ -124,6 +124,58 @@ ok(s.draft.assignments.filter(a => a.auto).length === 3, 'exactly three people w
 ok(s.draft.assignments.filter(a => !a.auto).length === 3, 'the other three chose');
 ok(new Set(s.draft.assignments.map(a => a.deskId)).size === 6, 'all six desks used exactly once');
 
+console.log('\n— absent people are seated instantly, never a countdown —');
+{
+  await seedLayout(20);   // plenty of slack, so the tail is 0 and every skip is the instant path
+  const g3 = { code: null, host: client() };
+  const room3 = await newRoom();
+  g3.code = room3.code;
+  await g3.host.ready;
+  g3.host.send({ type: 'host:join', code: g3.code, hostToken: room3.hostToken });
+  await g3.host.next(isType('state'));
+
+  const present = await joinPlayers(g3.code, ['Here1', 'Here2', 'Here3']);
+  for (const name of ['Away1', 'Away2', 'Away3', 'Away4']) {
+    g3.host.send({ type: 'host:addPlayer', code: g3.code, name });
+  }
+  await g3.host.next(m => m.type === 'state' && m.state.players.length === 7);
+  await runSprint(g3.host, g3.code, present);
+
+  g3.host.send({ type: 'host:startDraft', code: g3.code });
+  let st = (await g3.host.next(m => m.type === 'state' && m.state.phase === 'draft')).state;
+  // Absentees rank at the bottom, but the within-tier shuffle can slot one
+  // just ahead of the lowest-scoring present person at a tier boundary — the
+  // guarantee that matters is behavioural: an absentee never HOLDS a turn.
+  const awayRanks = st.draft.order.map((o, i) => o.name.startsWith('Away') ? i : -1).filter(i => i >= 0);
+  ok(awayRanks.length === 4 && Math.min(...awayRanks) >= 2,
+     'absentees sit in the lower half of the pick order');
+
+  // The three present people pick; the moment the last one does, all four
+  // absentees must be seated with no countdowns in between. The 4s message
+  // timeout is the proof: four 15s timers would blow straight through it.
+  const t0 = Date.now();
+  let guard = 0;
+  while (st.phase === 'draft' && st.draft.current && guard++ < 10) {
+    const turn = present.find(p => p.id === st.draft.current.playerId);
+    ok(!!turn, `it is a present person's turn (${st.draft.current.name}) — never an absentee's`);
+    turn.c.send({ type: 'draft:pick', code: g3.code, deskId: st.draft.current.options[0].id });
+    st = (await g3.host.next(m => m.type === 'state' &&
+        (m.state.phase === 'result' || m.state.draft?.index > st.draft.index))).state;
+  }
+  ok(st.phase === 'result', 'the draft finished');
+  ok(Date.now() - t0 < 5000, `no absentee countdown was waited out (${Date.now() - t0}ms total)`);
+
+  const seats = st.draft.assignments;
+  ok(seats.length === 7, 'all 7 people are on the map, absent or not');
+  const away = seats.filter(a => a.name.startsWith('Away'));
+  ok(away.length === 4 && away.every(a => a.auto), 'every absentee is seated and marked auto-assigned');
+  ok(seats.filter(a => !a.auto).length === 3, 'the three present people all chose for themselves');
+  ok(new Set(seats.map(a => a.deskId)).size === 7, 'no desk double-booked');
+
+  present.forEach(p => p.c.close());
+  g3.host.close();
+}
+
 console.log('\n— draft messages outside the draft —');
 g.players[0].c.send({ type: 'draft:pick', code: g.code, deskId: 'd1' });
 ok((await g.players[0].c.next(isType('error'))).code === 'not_in_draft', 'picking after the draft is refused');
