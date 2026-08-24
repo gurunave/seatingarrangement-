@@ -4,6 +4,8 @@ import { connect, errorText } from '/net.js';
 
 const $ = id => document.getElementById(id);
 const SAVED = 'seatdraft.session';
+// Declared up here so show() is safe to call from the moment the module runs.
+const VIEWS = ['joinView', 'lobbyView', 'sprintView', 'waitView', 'resultView', 'doneView'];
 
 let net = null;
 let me = null;   // { code, playerId, name }
@@ -69,11 +71,25 @@ function onMessage(msg) {
       localStorage.setItem(SAVED, JSON.stringify(me));
       $('myName').textContent = msg.name;
       $('joinBtn').disabled = false;
-      show('lobbyView');
+      // A sprint:question or sprint:done follows immediately when the game is
+      // already running, so only claim the lobby if we're actually in it.
+      if ($('sprintView').classList.contains('hidden')) show('lobbyView');
       break;
 
     case 'state':
-      $('playerCount').textContent = msg.state.players.length;
+      onState(msg.state);
+      break;
+
+    case 'sprint:question':
+      afterVerdict(() => renderQuestion(msg.question, msg.msLeft));
+      break;
+
+    case 'sprint:result':
+      showVerdict(msg.correct);
+      break;
+
+    case 'sprint:done':
+      afterVerdict(() => { stopClock(); show('waitView'); });
       break;
 
     case 'kicked':
@@ -96,6 +112,10 @@ function onMessage(msg) {
           return;
         }
       }
+      if (msg.code === 'out_of_step' || msg.code === 'not_in_sprint') {
+        answering = false;
+        return;   // the server's next question message is the source of truth
+      }
       showError(errorText(msg.code));
       break;
   }
@@ -109,6 +129,109 @@ function onStatus(status) {
   }
 }
 
+// The phone follows whatever phase the room is in, so a reconnect mid-game
+// lands on the right screen rather than back in the lobby.
+function onState(state) {
+  $('playerCount').textContent = state.players.length;
+
+  if (state.phase === 'sprint' && state.sprint) {
+    const left = state.sprint.playing - state.sprint.finished;
+    $('waitCount').textContent = Math.max(0, left);
+    return;
+  }
+
+  if (state.phase === 'reveal' && state.results) {
+    stopClock();
+    renderMyResult(state.results, state.questionTotal ?? 10);
+  }
+}
+
+function renderMyResult(results, total) {
+  const mine = results.find(r => r.id === me?.playerId);
+  if (!mine) return;
+  $('myRank').textContent = ordinal(mine.rank);
+  $('myScore').textContent = `${mine.score} of ${total} correct`;
+  $('myTime').textContent = mine.elapsedMs != null
+    ? `in ${(mine.elapsedMs / 1000).toFixed(1)}s`
+    : 'did not finish';
+  show('resultView');
+}
+
+const ordinal = n => {
+  const s = ['th', 'st', 'nd', 'rd'], v = n % 100;
+  return n + (s[(v - 20) % 10] || s[v] || s[0]);
+};
+
+/* ------------------------------------------------------------------- sprint */
+
+let clockTimer = null;
+let deadline = 0;
+let answering = false;
+let verdictUntil = 0;
+
+const VERDICT_MS = 420;
+
+// The server answers a tap with the verdict and the next question back to back.
+// Without this the green/red flash would be overwritten in the same frame.
+function afterVerdict(fn) {
+  const wait = verdictUntil - Date.now();
+  if (wait > 0) setTimeout(fn, wait); else fn();
+}
+
+function renderQuestion(q, msLeft) {
+  answering = false;
+  $('qNum').textContent = q.index + 1;
+  $('qTotal').textContent = q.total;
+  $('qbar').style.width = `${(q.index / q.total) * 100}%`;
+  $('question').textContent = q.text;
+  $('verdict').textContent = '';
+  $('verdict').className = 'verdict';
+
+  $('options').innerHTML = q.options
+    .map(o => `<button class="opt" data-v="${o}">${o}</button>`).join('');
+  $('options').querySelectorAll('.opt').forEach(btn => {
+    btn.addEventListener('click', () => answer(q.index, Number(btn.dataset.v), btn), { once: true });
+  });
+
+  startClock(msLeft);
+  show('sprintView');
+}
+
+function answer(index, choice, btn) {
+  if (answering) return;   // a double-tap must not count twice
+  answering = true;
+  btn.dataset.chosen = '1';
+  $('options').querySelectorAll('.opt').forEach(b => { b.disabled = true; });
+  net.send({ type: 'sprint:answer', code: me.code, index, choice });
+}
+
+function showVerdict(correct) {
+  verdictUntil = Date.now() + VERDICT_MS;
+  const chosen = $('options').querySelector('.opt[data-chosen]');
+  if (chosen) chosen.classList.add(correct ? 'right' : 'wrong');
+  const v = $('verdict');
+  v.textContent = correct ? 'Correct' : 'Wrong';
+  v.className = `verdict ${correct ? 'right' : 'wrong'}`;
+}
+
+function startClock(msLeft) {
+  deadline = Date.now() + Math.max(0, msLeft ?? 0);
+  if (clockTimer) return;   // one ticker for the whole sprint, not one per question
+  const tick = () => {
+    const left = Math.max(0, deadline - Date.now());
+    const secs = Math.ceil(left / 1000);
+    $('clock').textContent = `${Math.floor(secs / 60)}:${String(secs % 60).padStart(2, '0')}`;
+    $('clock').classList.toggle('low', secs <= 10);
+  };
+  tick();
+  clockTimer = setInterval(tick, 250);
+}
+
+function stopClock() {
+  clearInterval(clockTimer);
+  clockTimer = null;
+}
+
 function finish(text) {
   localStorage.removeItem(SAVED);
   $('doneMsg').textContent = text;
@@ -116,9 +239,7 @@ function finish(text) {
 }
 
 function show(id) {
-  for (const v of ['joinView', 'lobbyView', 'doneView']) {
-    $(v).classList.toggle('hidden', v !== id);
-  }
+  for (const v of VIEWS) $(v).classList.toggle('hidden', v !== id);
 }
 
 function showError(text) {

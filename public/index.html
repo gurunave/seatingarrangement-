@@ -20,6 +20,38 @@
   }
   @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: .25; } }
   .big-name { font-size: 30px; font-weight: 700; letter-spacing: -.02em; }
+
+  /* --- sprint --- */
+  .qmeta { display: flex; justify-content: space-between; align-items: baseline; font-weight: 700; }
+  .qmeta .of { color: var(--ink-dim); font-size: 14px; }
+  .clock { font-family: var(--mono); font-size: 15px; font-weight: 700; color: var(--ink-dim); }
+  .clock.low { color: var(--bad); }
+  .qbar { height: 5px; border-radius: 3px; background: var(--panel-2); overflow: hidden; }
+  .qbar > i { display: block; height: 100%; background: var(--accent); transition: width .25s linear; }
+  .question {
+    font-size: clamp(40px, 13vw, 62px); font-weight: 800; letter-spacing: -.03em;
+    text-align: center; padding: 26px 0 6px;
+  }
+  /* The sprint fills the screen: question up top where the eye is, options in
+     the bottom half where thumbs already are. Tapping speed is the game. */
+  #sprintView { width: 100%; }
+  #sprintView .panel { min-height: calc(100dvh - 44px); display: flex; flex-direction: column; }
+  #question { flex: 1; display: flex; align-items: center; justify-content: center; }
+  .options { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .opt {
+    font-size: 30px; font-weight: 700; font-family: var(--mono);
+    padding: 34px 8px; border-radius: 14px;
+  }
+  .opt.right { background: var(--good); color: #04240f; border-color: transparent; }
+  .opt.wrong { background: var(--bad); color: #2b0505; border-color: transparent; }
+  .opt:disabled { opacity: 1; } /* locked after tapping, but must stay readable */
+  .verdict { font-size: 15px; font-weight: 700; min-height: 22px; text-align: center; }
+  .verdict.right { color: var(--good); }
+  .verdict.wrong { color: var(--bad); }
+
+  /* --- your result --- */
+  .rank-num { font-size: 64px; font-weight: 800; letter-spacing: -.04em; line-height: 1; }
+  .score-line { font-size: 20px; font-weight: 700; }
 </style>
 </head>
 <body>
@@ -68,6 +100,44 @@
     <button id="leaveBtn" class="tiny" style="align-self:center; background:none; border:none; color:var(--ink-dim)">
       Not you? Leave
     </button>
+  </section>
+
+  <!-- maths sprint -->
+  <section id="sprintView" class="stack hidden">
+    <div class="panel stack" style="gap:14px">
+      <div class="qmeta">
+        <span>Question <span id="qNum">1</span><span class="of"> / <span id="qTotal">10</span></span></span>
+        <span id="clock" class="clock">1:30</span>
+      </div>
+      <div class="qbar"><i id="qbar" style="width:0%"></i></div>
+      <div id="question" class="question">—</div>
+      <div id="options" class="options"></div>
+      <div id="verdict" class="verdict"></div>
+    </div>
+  </section>
+
+  <!-- finished, waiting for the room -->
+  <section id="waitView" class="stack hidden">
+    <div class="panel center stack" style="gap:14px; padding:34px 20px">
+      <div style="font-size:40px">✓</div>
+      <div class="big-name">All done</div>
+      <p class="muted small">Scores go up on the big screen once everyone finishes.</p>
+      <div class="row" style="justify-content:center; gap:9px">
+        <span class="waiting-dot"></span>
+        <span class="small muted" style="font-weight:600"><span id="waitCount">0</span> still answering</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- your result -->
+  <section id="resultView" class="stack hidden">
+    <div class="panel center stack" style="gap:10px; padding:30px 20px">
+      <div class="muted small" style="font-weight:600; letter-spacing:.1em">YOU FINISHED</div>
+      <div id="myRank" class="rank-num">–</div>
+      <div id="myScore" class="score-line"></div>
+      <div id="myTime" class="muted small"></div>
+      <p class="muted small" style="margin-top:8px">Watch the big screen for the tiers.</p>
+    </div>
   </section>
 
   <!-- kicked / replaced -->

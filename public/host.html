@@ -30,6 +30,52 @@
   .manage-list { max-height: 260px; overflow-y: auto; }
   .tag { font-size: 11px; font-weight: 700; letter-spacing: .06em; color: var(--warn); }
   @media (max-width: 1000px) { .lobby { grid-template-columns: 1fr; } }
+
+  /* --- sprint --- */
+  #sprintView, #revealView { min-height: calc(100vh - 48px); display: flex; align-items: center; }
+  /* Four mono glyphs ("1:30") run about 2.4em wide — this has to stay inside
+     the same 420px panel the room code lives in. */
+  .sprint-clock {
+    font-family: var(--mono); font-size: clamp(56px, 9vw, 138px); font-weight: 800;
+    line-height: 1; letter-spacing: -.03em;
+  }
+  .sprint-clock.low { color: var(--bad); }
+  .done-count { font-size: clamp(50px, 8vw, 104px); font-weight: 800; letter-spacing: -.03em; line-height: 1; }
+  .done-count .of { color: var(--ink-dim); font-size: .4em; font-weight: 600; }
+  .pgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px; }
+  .pcard {
+    background: var(--panel-2); border: 1px solid var(--line); border-radius: 12px;
+    padding: 12px 14px; display: flex; flex-direction: column; gap: 9px;
+  }
+  .pcard.done { border-color: var(--good); }
+  .pcard .nm { font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .pips { display: flex; gap: 4px; }
+  .pips i { flex: 1; height: 6px; border-radius: 2px; background: #333c4d; }
+  .pips i.on { background: var(--accent); }
+  .pcard.done .pips i.on { background: var(--good); }
+
+  /* --- leaderboard --- */
+  .board { display: flex; flex-direction: column; gap: 7px; }
+  .lrow {
+    display: grid; grid-template-columns: 62px 1fr auto auto; gap: 16px; align-items: center;
+    background: var(--panel-2); border: 1px solid var(--line);
+    border-radius: 12px; padding: 12px 18px;
+  }
+  .lrow.top { border-color: var(--accent); background: rgba(77,157,255,.09); }
+  .lrow .pos { font-size: 22px; font-weight: 800; color: var(--ink-dim); }
+  .lrow.top .pos { color: var(--accent); }
+  .lrow .who { font-size: 20px; font-weight: 700; }
+  .lrow .sc { font-size: 20px; font-weight: 800; font-variant-numeric: tabular-nums; }
+  .lrow .tm { font-family: var(--mono); font-size: 14px; color: var(--ink-dim); min-width: 74px; text-align: right; }
+  /* Column-major so the board reads 1..n down the left, then continues on the
+     right — across-the-columns ordering is unreadable as a ranking. */
+  .board-cols {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 7px 26px;
+    grid-auto-flow: column; grid-template-rows: repeat(var(--rows, 10), auto);
+  }
+  @media (max-width: 1100px) {
+    .board-cols { grid-template-columns: 1fr; grid-auto-flow: row; grid-template-rows: none; }
+  }
 </style>
 </head>
 <body>
@@ -93,6 +139,47 @@
         </div>
       </div>
 
+    </div>
+  </section>
+  <!-- sprint in progress -->
+  <section id="sprintView" class="hidden">
+    <div class="lobby">
+      <div class="stack">
+        <div class="panel center stack" style="gap:8px">
+          <div class="muted small" style="font-weight:600; letter-spacing:.1em">TIME LEFT</div>
+          <div id="sprintClock" class="sprint-clock">1:30</div>
+        </div>
+        <div class="panel center">
+          <div class="done-count"><span id="doneCount">0</span><span class="of"> / <span id="playingCount">0</span></span></div>
+          <div class="muted small" style="margin-top:6px">finished</div>
+        </div>
+        <button id="endBtn">End sprint now</button>
+        <div class="muted small center">Scores stay hidden until everyone is done.</div>
+      </div>
+
+      <div class="panel roster-panel">
+        <h2 style="font-size:20px; margin-bottom:14px">Maths sprint</h2>
+        <div id="pgrid" class="pgrid"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- leaderboard -->
+  <section id="revealView" class="hidden">
+    <div style="width:100%">
+      <div class="row spread" style="margin-bottom:18px; flex-wrap:wrap; gap:12px">
+        <div>
+          <h1 style="font-size:32px">Leaderboard</h1>
+          <p class="muted small" style="margin-top:6px">
+            Score first, then time. This ordering feeds the tiers.
+          </p>
+        </div>
+        <button id="againBtn">New room</button>
+      </div>
+      <div id="board" class="board board-cols"></div>
+      <p class="muted small center" style="margin-top:18px">
+        Next: tiers and the seat draft.
+      </p>
     </div>
   </section>
 </div>

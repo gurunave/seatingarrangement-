@@ -6,14 +6,14 @@ big screen: the projector shows the drama, the phones are the controllers.
 
 ## Status
 
-Phase 1 of 5 is built and tested — **room setup and the join flow**.
+Phases 1–2 are built and tested — **setup, join, and the maths sprint**.
 
 | Phase | What it does | State |
 |---|---|---|
 | Setup | Manager lays out the desks; saved between runs | ✅ built |
 | Join | Room code, phones join, live roster on the big screen | ✅ built |
-| Sprint | 10 timed maths questions, everyone at once | ⏳ next |
-| Reveal | Leaderboard, split into 4 tiers, shuffled within each tier | ⏳ |
+| Sprint | 10 timed maths questions, everyone at once | ✅ built |
+| Reveal | Leaderboard ✅ — tiers and the shuffle still to come | 🚧 partial |
 | Draft | Pick a desk; better rank = more options; last 3 auto-assigned | ⏳ |
 | Result | Final map as a shareable image, plus the leaderboard | ⏳ |
 
@@ -35,7 +35,28 @@ Three screens:
 Do `/setup` once, then open `/host` on the machine driving the screen and read the
 code out. People can also scan/click a prefilled link: `http://<host>/?c=ABCD`.
 
-## How the game will work
+## The maths sprint
+
+Ten questions, the same set in the same order for everyone, four options each.
+Tap an answer and the next question appears. Score is correct answers; ties break
+on total elapsed time, so speed only counts once you're right.
+
+- **90 seconds**, shown on both the phone and the big screen. Override with
+  `SPRINT_SECONDS` if your team wants longer.
+- **Nothing leaks.** The phone is sent four numbers and never told which is right
+  until after it commits. The big screen shows how far along each person is, but
+  no scores until the sprint ends — there is no answer key on any device.
+- **The room never stalls.** It ends when everyone finishes, when the clock runs
+  out, or when you press *End sprint now*. Whatever someone has answered by then
+  counts; the rest are simply missing.
+- **Reconnecting works mid-sprint.** Refresh, lock the phone, drop off WiFi — you
+  come back to the same question with the answers you already gave intact.
+- **Difficulty ramps** across three bands, from `18 + 8` to `36 × 6`. Distractors
+  are near-misses, so the right answer never stands out as the only sane number,
+  and the answer is spread evenly across the four slots so tapping the same
+  position blind is no strategy at all.
+
+## How the rest of the game works
 
 Score on the maths sprint sets your **tier**; order **within** your tier is random.
 Being fast gets you more to choose from, but never guarantees you pick first — that
@@ -78,10 +99,14 @@ takes a minute to redo in `/setup`; if that matters, attach a persistent volume.
 ## Tests
 
 ```bash
-npm test           # 45 protocol tests — boots a server on a scratch port
-npm run test:ui    # 34 browser tests (needs: npm i -D playwright)
+npm test           # 102 tests — boots servers on scratch ports
+npm run test:ui    # 58 browser tests (needs: npm i -D playwright)
 ```
 
-The protocol suite covers joining, validation, host auth, reconnection, and the
-manual-add flow. The UI suite drives real Chromium pages — the setup editor, the big
-screen, and several phones at once — including refresh-recovery and duplicate names.
+| Suite | Covers |
+|---|---|
+| `questions` | 5,000 generated questions: distinct options, plausible distractors, no positional tell |
+| `protocol` | Joining, validation, host auth, reconnection, the manual-add flow |
+| `sprint` | Scoring, ranking, the answer key never reaching a phone, out-of-step answers, mid-sprint reconnect |
+| `sprint-timeout` | The sprint's own deadline, against a server run with a short limit |
+| `ui` / `ui-sprint` | Real Chromium: the editor, the big screen, and several phones playing at once |

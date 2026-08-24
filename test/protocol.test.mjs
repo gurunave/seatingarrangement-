@@ -1,43 +1,9 @@
-import WebSocket from 'ws';
-const PORT = process.env.PORT || 3000;
-const BASE = `http://localhost:${PORT}`;
-let pass = 0, fail = 0;
-const ok = (c, m) => { c ? (pass++, console.log('  ✓', m)) : (fail++, console.log('  ✗ FAIL:', m)); };
-
-function client() {
-  const ws = new WebSocket(`ws://localhost:${PORT}/ws`);
-  const inbox = [];
-  const waiters = [];
-  ws.on('message', d => {
-    const m = JSON.parse(d);
-    const w = waiters.findIndex(x => x.match(m));
-    if (w >= 0) waiters.splice(w, 1)[0].resolve(m); else inbox.push(m);
-  });
-  return {
-    ws,
-    ready: new Promise(r => ws.on('open', r)),
-    send: m => ws.send(JSON.stringify(m)),
-    next(match = () => true, ms = 3000) {
-      const i = inbox.findIndex(match);
-      if (i >= 0) return Promise.resolve(inbox.splice(i, 1)[0]);
-      return new Promise((resolve, reject) => {
-        const w = { match, resolve };
-        waiters.push(w);
-        setTimeout(() => reject(new Error('timeout waiting for message')), ms);
-      });
-    },
-    close: () => ws.close()
-  };
-}
-const isType = t => m => m.type === t;
+import { BASE, ok, report, client, isType, seedDefaultLayout } from './helpers.mjs';
 
 console.log('\n— layout API —');
 // Start from a known layout: /api/layout returns whatever was last SAVED, so
 // without this the suite passes only on a clean data directory.
-const seed = (await (await fetch(`${BASE}/api/layout/default`)).json()).layout;
-await fetch(`${BASE}/api/layout`, {
-  method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(seed)
-});
+await seedDefaultLayout();
 
 let r = await fetch(`${BASE}/api/layout`);
 let { layout, grid, perks } = await r.json();
@@ -170,5 +136,4 @@ for (const p of ['/', '/host', '/setup', '/app.css', '/net.js', '/join.js', '/ho
 ok((await fetch(`${BASE}/../server/store.js`)).status === 404, 'path traversal blocked');
 
 host.close(); bob.close(); carol.close(); alice3.close();
-console.log(`\n${pass} passed, ${fail} failed\n`);
-process.exit(fail ? 1 : 0);
+report();

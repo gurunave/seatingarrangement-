@@ -53,6 +53,10 @@ export const ERRORS = {
   unknown_player: 'We lost your place — please join again.',
   not_host: 'Only the host screen can do that.',
   no_desks: 'Add some desks in setup first.',
+  not_in_sprint: 'The sprint is not running.',
+  need_players: 'You need at least two people with phones to start.',
+  out_of_step: 'That answer arrived out of order — showing your current question.',
+  already_finished: "You've already finished the sprint.",
   server_error: 'Something went wrong. Try again.'
 };
 

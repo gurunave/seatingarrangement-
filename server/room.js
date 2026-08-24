@@ -2,6 +2,7 @@
 // rejoins with the same room code, which is the right trade for a 10-minute
 // event that happens four times a year.
 import { randomUUID } from 'node:crypto';
+import { generateQuestions, rankEntries, QUESTION_COUNT, SPRINT_SECONDS } from './sprint.js';
 
 // No O/0/I/1 — someone is reading this off a projector from the back row.
 const CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
@@ -30,7 +31,9 @@ export function createRoom(layout) {
     layout,                 // snapshotted, so editing the saved layout mid-game is harmless
     players: new Map(),     // playerId -> player
     sockets: new Map(),     // playerId -> ws
-    hosts: new Set()        // big-screen connections
+    hosts: new Set(),       // big-screen connections
+    sprint: null,           // set when the maths sprint starts
+    results: null           // ranked once the sprint ends
   };
   rooms.set(room.code, room);
   return room;
@@ -73,6 +76,103 @@ export function removePlayer(room, playerId) {
   return room.players.delete(playerId);
 }
 
+/* ------------------------------------------------------------------- sprint */
+
+export function startSprint(room) {
+  room.sprint = {
+    questions: generateQuestions(QUESTION_COUNT),
+    startedAt: Date.now(),
+    endsAt: Date.now() + SPRINT_SECONDS * 1000,
+    entries: new Map(),   // playerId -> { answers: [], score, finishedAt }
+    timer: null
+  };
+  room.results = null;
+  room.phase = 'sprint';
+
+  // Someone whose phone died shouldn't hold the whole room hostage.
+  room.sprint.timer = setTimeout(() => endSprint(room), SPRINT_SECONDS * 1000);
+  return room.sprint;
+}
+
+export function entryFor(room, playerId) {
+  let entry = room.sprint.entries.get(playerId);
+  if (!entry) {
+    entry = { answers: [], score: 0, finishedAt: null };
+    room.sprint.entries.set(playerId, entry);
+  }
+  return entry;
+}
+
+// Returns the next question for this player, or null once they're finished.
+export function currentQuestion(room, playerId) {
+  const entry = entryFor(room, playerId);
+  if (entry.finishedAt) return null;
+  return room.sprint.questions[entry.answers.length] ?? null;
+}
+
+export function recordAnswer(room, playerId, index, choice) {
+  const entry = entryFor(room, playerId);
+  if (entry.finishedAt) return { ok: false, reason: 'already_finished' };
+
+  // The index guards against a double-tap or a replayed message scoring twice.
+  if (index !== entry.answers.length) return { ok: false, reason: 'out_of_step' };
+
+  const question = room.sprint.questions[index];
+  if (!question) return { ok: false, reason: 'out_of_step' };
+
+  const correct = Number(choice) === question.answer;
+  entry.answers.push({ index, choice: Number(choice), correct });
+  if (correct) entry.score++;
+
+  if (entry.answers.length >= room.sprint.questions.length) entry.finishedAt = Date.now();
+  return { ok: true, correct, finished: !!entry.finishedAt };
+}
+
+// Everyone who could realistically still be answering — a person pencilled in
+// from the host screen has no phone, so the room never waits on them.
+export function pendingPlayers(room) {
+  return [...room.players.values()].filter(
+    p => !p.manual && !room.sprint.entries.get(p.id)?.finishedAt
+  );
+}
+
+export function endSprint(room) {
+  if (!room.sprint || room.phase !== 'sprint') return null;
+  clearTimeout(room.sprint.timer);
+  room.sprint.timer = null;
+
+  // Anyone still mid-sprint is banked where they stand: answered questions
+  // count, the rest are simply missing.
+  for (const player of room.players.values()) {
+    const entry = entryFor(room, player.id);
+    if (!entry.finishedAt && entry.answers.length > 0) entry.finishedAt = Date.now();
+  }
+
+  room.results = rankEntries([...room.players.values()], room.sprint);
+  room.phase = 'reveal';
+  broadcast(room);
+  return room.results;
+}
+
+export function sprintSummary(room) {
+  if (!room.sprint) return null;
+  const players = [...room.players.values()];
+  return {
+    total: room.sprint.questions.length,
+    startedAt: room.sprint.startedAt,
+    endsAt: room.sprint.endsAt,
+    msLeft: Math.max(0, room.sprint.endsAt - Date.now()),
+    playing: players.filter(p => !p.manual).length,
+    finished: players.filter(p => room.sprint.entries.get(p.id)?.finishedAt).length,
+    // Progress only — how far along someone is says nothing about their score.
+    progress: players.map(p => ({
+      id: p.id,
+      answered: room.sprint.entries.get(p.id)?.answers.length ?? 0,
+      done: !!room.sprint.entries.get(p.id)?.finishedAt
+    }))
+  };
+}
+
 // What every client is allowed to know about the room right now.
 export function publicState(room) {
   return {
@@ -80,6 +180,9 @@ export function publicState(room) {
     phase: room.phase,
     layout: room.layout,
     seatCount: room.layout.desks.length,
+    sprint: room.phase === 'sprint' ? sprintSummary(room) : null,
+    results: room.results,
+    questionTotal: room.sprint ? room.sprint.questions.length : null,
     players: [...room.players.values()]
       .sort((a, b) => a.joinedAt - b.joinedAt)
       .map(p => ({ id: p.id, name: p.name, connected: p.connected, manual: p.manual }))

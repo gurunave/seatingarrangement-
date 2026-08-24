@@ -7,8 +7,10 @@ import { WebSocketServer } from 'ws';
 import { loadLayout, saveLayout, sanitizeLayout, defaultLayout, GRID, PERKS } from './store.js';
 import {
   createRoom, getRoom, addPlayer, removePlayer, broadcast, publicState,
-  normalizeName, nameTaken, sweepRooms, MAX_PLAYERS
+  normalizeName, nameTaken, sweepRooms, MAX_PLAYERS,
+  startSprint, endSprint, recordAnswer, currentQuestion, pendingPlayers
 } from './room.js';
+import { publicQuestion } from './sprint.js';
 
 const PORT = process.env.PORT || 3000;
 const PUBLIC_DIR = join(fileURLToPath(new URL('.', import.meta.url)), '..', 'public');
@@ -166,10 +168,31 @@ function handleMessage(ws, msg) {
       if (!player) return reply(ws, { type: 'error', code: 'unknown_player' });
       attachPlayer(ws, room, player);
       reply(ws, { type: 'joined', playerId: player.id, name: player.name });
+      if (room.phase === 'sprint') sendQuestion(ws, room, player.id);
       broadcast(room);
       return;
     }
 
+    case 'sprint:answer': {
+      if (room.phase !== 'sprint') return reply(ws, { type: 'error', code: 'not_in_sprint' });
+      if (ws.role !== 'player' || ws.roomCode !== room.code) {
+        return reply(ws, { type: 'error', code: 'unknown_player' });
+      }
+      const result = recordAnswer(room, ws.playerId, Number(msg.index), msg.choice);
+      if (!result.ok) return reply(ws, { type: 'error', code: result.reason });
+
+      // The phone is told whether it was right, but only after it has committed.
+      reply(ws, { type: 'sprint:result', index: Number(msg.index), correct: result.correct });
+      if (result.finished) reply(ws, { type: 'sprint:done' });
+      else sendQuestion(ws, room, ws.playerId);
+
+      if (pendingPlayers(room).length === 0) endSprint(room);
+      else broadcast(room);
+      return;
+    }
+
+    case 'host:start':
+    case 'host:endSprint':
     case 'host:addPlayer':
     case 'host:removePlayer':
     case 'host:renamePlayer':
@@ -184,6 +207,24 @@ function handleMessage(ws, msg) {
 }
 
 function handleHostAction(ws, room, msg) {
+  if (msg.type === 'host:start') {
+    if (room.phase !== 'lobby') return reply(ws, { type: 'error', code: 'already_started' });
+    const playing = [...room.players.values()].filter(p => !p.manual);
+    if (playing.length < 2) return reply(ws, { type: 'error', code: 'need_players' });
+
+    startSprint(room);
+    console.log(`room ${room.code} started the sprint with ${playing.length} playing`);
+    for (const [playerId, sock] of room.sockets) sendQuestion(sock, room, playerId);
+    broadcast(room);
+    return;
+  }
+
+  if (msg.type === 'host:endSprint') {
+    if (room.phase !== 'sprint') return reply(ws, { type: 'error', code: 'not_in_sprint' });
+    endSprint(room);
+    return;
+  }
+
   if (msg.type === 'host:addPlayer') {
     const name = normalizeName(msg.name);
     if (name.length < 2) return reply(ws, { type: 'error', code: 'bad_name' });
@@ -206,6 +247,17 @@ function handleHostAction(ws, room, msg) {
   }
 
   broadcast(room);
+}
+
+function sendQuestion(ws, room, playerId) {
+  const question = currentQuestion(room, playerId);
+  if (!question) return reply(ws, { type: 'sprint:done' });
+  const index = room.sprint.entries.get(playerId).answers.length;
+  reply(ws, {
+    type: 'sprint:question',
+    question: publicQuestion(question, index, room.sprint.questions.length),
+    msLeft: Math.max(0, room.sprint.endsAt - Date.now())
+  });
 }
 
 function attachPlayer(ws, room, player) {

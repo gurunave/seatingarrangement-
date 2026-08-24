@@ -4,6 +4,8 @@ import { connect, errorText } from '/net.js';
 
 const $ = id => document.getElementById(id);
 const SAVED = 'seatdraft.host';
+// Declared up here: start() runs at module load and calls show() immediately.
+const VIEWS = ['startView', 'lobbyView', 'sprintView', 'revealView'];
 
 let net = null;
 let session = null;   // { code, hostToken }
@@ -38,8 +40,20 @@ function wire() {
   $('addName').addEventListener('keydown', e => { if (e.key === 'Enter') addPlayer(); });
 
   $('startBtn').addEventListener('click', () => {
-    // Phase 2 lands here next — the maths sprint.
-    $('startHint').textContent = 'The maths sprint is the next thing being built.';
+    $('startBtn').disabled = true;
+    net.send({ type: 'host:start', code: session.code });
+  });
+
+  $('endBtn').addEventListener('click', () => {
+    if (confirm('End the sprint now? Anyone still answering keeps what they have so far.')) {
+      net.send({ type: 'host:endSprint', code: session.code });
+    }
+  });
+
+  $('againBtn').addEventListener('click', () => {
+    if (!confirm('Start a brand new room? The current results will be lost.')) return;
+    localStorage.removeItem(SAVED);
+    location.reload();
   });
 }
 
@@ -121,6 +135,15 @@ function onStatus(status) {
 
 function render() {
   if (!state) return;
+
+  if (state.phase === 'sprint') return renderSprint();
+  if (state.phase === 'reveal') return renderReveal();
+  renderLobby();
+}
+
+function renderLobby() {
+  stopClock();
+  show('lobbyView');
   const players = state.players;
 
   $('joined').textContent = players.length;
@@ -140,6 +163,69 @@ function render() {
     : `Ready when you are — ${players.length} playing for ${state.seatCount} desks.`;
 
   if (managing) renderManageList(players);
+}
+
+/* ------------------------------------------------------------------- sprint */
+
+let clockTimer = null;
+let deadline = 0;
+
+function renderSprint() {
+  show('sprintView');
+  const { sprint, players } = state;
+  const byId = new Map(players.map(p => [p.id, p]));
+
+  $('doneCount').textContent = sprint.finished;
+  $('playingCount').textContent = sprint.playing;
+  startClock(sprint.msLeft);
+
+  $('pgrid').innerHTML = sprint.progress.map(pr => {
+    const player = byId.get(pr.id);
+    if (!player || player.manual) return '';   // pencilled in, no phone to answer on
+    const pips = Array.from({ length: sprint.total }, (_, i) =>
+      `<i class="${i < pr.answered ? 'on' : ''}"></i>`).join('');
+    return `<div class="pcard ${pr.done ? 'done' : ''}">
+        <div class="nm">${esc(player.name)}${pr.done ? ' ✓' : ''}</div>
+        <div class="pips">${pips}</div>
+      </div>`;
+  }).join('');
+}
+
+// Ticks locally between broadcasts; each state message re-anchors it, so it
+// never drifts far from the server's real deadline.
+function startClock(msLeft) {
+  deadline = Date.now() + Math.max(0, msLeft ?? 0);
+  if (clockTimer) return;
+  const tick = () => {
+    const secs = Math.ceil(Math.max(0, deadline - Date.now()) / 1000);
+    $('sprintClock').textContent = `${Math.floor(secs / 60)}:${String(secs % 60).padStart(2, '0')}`;
+    $('sprintClock').classList.toggle('low', secs <= 10);
+  };
+  tick();
+  clockTimer = setInterval(tick, 250);
+}
+
+function stopClock() {
+  clearInterval(clockTimer);
+  clockTimer = null;
+}
+
+/* ------------------------------------------------------------------- reveal */
+
+function renderReveal() {
+  stopClock();
+  show('revealView');
+  const total = state.questionTotal ?? 10;
+  const results = state.results || [];
+  $('board').style.setProperty('--rows', Math.ceil(results.length / 2));
+
+  $('board').innerHTML = results.map(r => `
+    <div class="lrow ${r.rank <= 5 ? 'top' : ''}">
+      <span class="pos">${r.rank}</span>
+      <span class="who">${esc(r.name)}</span>
+      <span class="sc">${r.score}<span class="muted" style="font-size:14px; font-weight:600">/${total}</span></span>
+      <span class="tm">${r.elapsedMs != null ? (r.elapsedMs / 1000).toFixed(1) + 's' : '—'}</span>
+    </div>`).join('');
 }
 
 function renderManageList(players) {
@@ -186,7 +272,7 @@ function showManageError(text) {
 }
 
 function show(id) {
-  for (const v of ['startView', 'lobbyView']) $(v).classList.toggle('hidden', v !== id);
+  for (const v of VIEWS) $(v).classList.toggle('hidden', v !== id);
 }
 
 function readSaved() {
