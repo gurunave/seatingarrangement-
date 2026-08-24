@@ -170,6 +170,10 @@ ok(tail.totalAuto >= 3, `at least the tail is marked auto on the map (${tail.tot
 const names = await host.locator('#resultMap .desk .who').allTextContents();
 ok(new Set(names).size === 20, 'every occupant is a different person');
 ok([...HUMANS, ...BOTS].every(n => names.includes(n)), 'everyone who played has a desk on the map');
+const fit = await host.evaluate(() => ({
+  scroll: document.documentElement.scrollHeight, inner: innerHeight
+}));
+ok(fit.scroll <= fit.inner + 2, `the final map fits the screen with no scrolling (${fit.scroll} vs ${fit.inner})`);
 if (SHOTS) await host.screenshot({ path: `${SHOTS}/shot-host-result.png` });
 
 console.log('\n— what each phone ends on —');

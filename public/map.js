@@ -31,6 +31,8 @@ export function renderMap(el, layout, { assignments = [], offered = [], taken = 
   const offeredSet = new Set(offered);
 
   el.style.gridTemplateColumns = `repeat(${b.cols}, 1fr)`;
+  el.style.setProperty('--cols', b.cols);
+  el.style.setProperty('--rows', b.rows);
 
   const cells = [];
   for (let r = b.minR; r <= b.maxR; r++) {

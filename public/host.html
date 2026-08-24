@@ -126,6 +126,13 @@
 
   /* --- map on the big screen --- */
   .map { display: grid; gap: 8px; }
+  /* Size the map from the screen HEIGHT: cells are square, so a width of
+     (available height x cols/rows) makes the whole room fit with no
+     scrolling, whatever its shape — a 5x4 office included. */
+  #draftMap, #resultMap {
+    width: min(100%, calc((100vh - 320px) * var(--cols, 6) / var(--rows, 4)));
+    margin: 0 auto;
+  }
   .map .desk { font-size: 13px; position: relative; }
   .map .face-arrow {
     position: absolute; top: 4px; right: 6px;
