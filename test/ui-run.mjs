@@ -30,7 +30,7 @@ await new Promise((resolve, reject) => {
 });
 
 let failed = 0;
-for (const suite of ['test/ui.test.mjs', 'test/ui-sprint.test.mjs', 'test/ui-draft.test.mjs', 'test/ui-qr.test.mjs']) {
+for (const suite of ['test/ui.test.mjs', 'test/ui-sprint.test.mjs', 'test/ui-draft.test.mjs', 'test/ui-qr.test.mjs', 'test/ui-sim.test.mjs']) {
   console.log(`\n=== ${suite} ===`);
   const code = await new Promise(r => spawn(process.execPath, [suite], {
     cwd: root, env: { ...process.env, PORT: String(PORT) }, stdio: 'inherit'

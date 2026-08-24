@@ -97,7 +97,10 @@ To upgrade later: `git pull && sudo npm ci --omit=dev && sudo systemctl restart 
 
 1. Open `http://<server>:3000/setup` and lay out your real desks. Saved to
    `data/layout.json`, reused every quarter.
-2. Do a 5-minute dry run **from the actual office WiFi with 2–3 phones**.
+2. Rehearse solo first: create a room on `/host`, open `/simulate`, and fill
+   the lobby with test players — they play the sprint and the draft like real
+   people, so you can watch the whole game run before anyone else sees it.
+3. Then do a 5-minute dry run **from the actual office WiFi with 2–3 phones**.
    Corporate/guest WiFi sometimes blocks arbitrary ports or WebSockets —
    that's the one failure mode a test on your desk won't catch. If the office
    WiFi is hostile, phones on mobile data work fine when the server has a

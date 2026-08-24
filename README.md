@@ -31,6 +31,7 @@ Three screens:
 | `/setup` | you | Arrange the desks. Saved to `data/layout.json` and reused every run. |
 | `/host` | the projector | Room code, live roster, and the controls that drive the game. |
 | `/` | everyone's phone | Enter the code and your name. |
+| `/simulate` | you, rehearsing | Fill the lobby with up to 19 test players who play the whole game — sprint, draft and all — so you can run it solo before game day. |
 
 Do `/setup` once, then open `/host` on the machine driving the screen. The lobby
 shows a QR code — scanning it opens the join page with the room code already filled
@@ -137,5 +138,6 @@ on a deploy host would otherwise pull a browser download into every deploy.
 | `sprint` | Scoring, ranking, the answer key never reaching a phone, out-of-step answers, mid-sprint reconnect |
 | `draft` | Tier maths, the within-tier shuffle actually varying, turn order, illegal picks, the auto-assigned tail |
 | `sprint-timeout` / `draft-timeout` | Both deadlines, against servers run with short limits |
+| `sim` | A complete game played end to end by rehearsal bots — realistic score spread included |
 | `ui` / `ui-sprint` / `ui-draft` | Real Chromium: a full 20-person game from setup to the exported PNG |
 | `ui-qr` | The lobby QR decodes back to the join URL, and following it lands in the lobby |

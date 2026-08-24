@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<title>Rehearsal · Seat Draft</title>
+<link rel="stylesheet" href="/app.css">
+<style>
+  .count-row { display: flex; align-items: center; gap: 16px; }
+  input[type="range"] { flex: 1; accent-color: var(--accent); }
+  .count-val { font-size: 34px; font-weight: 800; min-width: 52px; text-align: center; }
+  .bot-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 8px; }
+  .bot {
+    display: flex; justify-content: space-between; gap: 8px;
+    background: var(--panel-2); border: 1px solid var(--line);
+    border-radius: 10px; padding: 9px 13px; font-size: 14px;
+  }
+  .bot .st { color: var(--ink-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+</style>
+</head>
+<body>
+<div class="wrap" style="max-width:860px">
+  <div style="margin-bottom:18px">
+    <h1>Rehearsal mode</h1>
+    <p class="muted small" style="margin-top:6px">
+      Fills your lobby with test players so you can run the whole game by yourself.
+      They join like real phones, do the maths (some well, some badly), and pick
+      seats on their turns. Practice only — don't use it during the real game.
+    </p>
+  </div>
+
+  <div class="panel stack">
+    <div>
+      <label class="field-label" for="codeInput">Room code (from the big screen)</label>
+      <input type="text" id="codeInput" maxlength="4" autocomplete="off"
+             autocapitalize="characters" spellcheck="false" placeholder="ABCD"
+             style="font-family:var(--mono); font-size:24px; letter-spacing:.2em; text-align:center; text-transform:uppercase; max-width:220px">
+    </div>
+    <div>
+      <label class="field-label" for="countInput">How many test players</label>
+      <div class="count-row">
+        <input type="range" id="countInput" min="1" max="19" value="19">
+        <div id="countVal" class="count-val">19</div>
+      </div>
+    </div>
+    <div class="row">
+      <button id="startBtn" class="primary grow">Add test players</button>
+      <button id="stopBtn" class="danger">Remove them</button>
+    </div>
+    <div id="notice" class="notice hidden"></div>
+  </div>
+
+  <div class="panel" style="margin-top:16px">
+    <div class="row spread" style="margin-bottom:12px">
+      <h3 style="font-size:16px">Test players</h3>
+      <span id="botCount" class="muted small"></span>
+    </div>
+    <div id="botList" class="bot-list"></div>
+    <div id="botEmpty" class="muted small">None yet. Create a room on the big screen, enter its code above, and add some.</div>
+  </div>
+
+  <p class="muted small" style="margin-top:14px">
+    Tip: open <a href="/host" style="color:var(--accent)">the big screen</a> in one window and this in another.
+    You can also join from your own phone alongside the bots — with 19 of them, you're the 20th.
+  </p>
+</div>
+<script type="module" src="/simulate.js"></script>
+</body>
+</html>

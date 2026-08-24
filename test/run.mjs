@@ -11,7 +11,8 @@ const BASE_PORT = Number(process.env.PORT) || 3411;
 const GROUPS = [
   { port: BASE_PORT,     env: {},                     suites: ['test/questions.test.mjs', 'test/protocol.test.mjs', 'test/sprint.test.mjs', 'test/draft.test.mjs'] },
   { port: BASE_PORT + 1, env: { SPRINT_SECONDS: '5' }, suites: ['test/sprint-timeout.test.mjs'] },
-  { port: BASE_PORT + 2, env: { DRAFT_SECONDS: '2' },  suites: ['test/draft-timeout.test.mjs'] }
+  { port: BASE_PORT + 2, env: { DRAFT_SECONDS: '2' },  suites: ['test/draft-timeout.test.mjs'] },
+  { port: BASE_PORT + 3, env: { SIM_THINK_MIN_MS: '40', SIM_THINK_MAX_MS: '160' }, suites: ['test/sim.test.mjs'] }
 ];
 
 function startServer(port, env) {

@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url';
 import { randomUUID } from 'node:crypto';
 import { WebSocketServer } from 'ws';
 import QRCode from 'qrcode';
+import { startBots, stopBots, status as simStatus } from './sim.js';
 import { loadLayout, saveLayout, sanitizeLayout, defaultLayout, GRID, PERKS } from './store.js';
 import {
   createRoom, getRoom, addPlayer, removePlayer, broadcast, publicState,
@@ -40,7 +41,7 @@ const server = createServer(async (req, res) => {
   }
 });
 
-const ROUTES = { '/': 'index.html', '/host': 'host.html', '/setup': 'setup.html' };
+const ROUTES = { '/': 'index.html', '/host': 'host.html', '/setup': 'setup.html', '/simulate': 'simulate.html' };
 
 async function serveStatic(pathname, res) {
   const rel = ROUTES[pathname] || normalize(pathname).replace(/^(\.\.[/\\])+/, '').replace(/^[/\\]+/, '');
@@ -89,6 +90,32 @@ async function handleApi(req, res, url) {
     });
     res.writeHead(200, { 'content-type': 'image/svg+xml', 'cache-control': 'no-cache' });
     return res.end(svg);
+  }
+
+  // Rehearsal bots — lets the manager run the whole game solo before game day.
+  if (url.pathname === '/api/sim' && req.method === 'POST') {
+    const body = await readBody(req);
+    const room = getRoom(body.code);
+    if (!room) return send(res, 404, { error: 'no_such_room' });
+    if (room.phase !== 'lobby') return send(res, 400, { error: 'already_started' });
+
+    const count = Math.round(Number(body.count));
+    if (!Number.isFinite(count) || count < 1) return send(res, 400, { error: 'bad_count' });
+    const space = Math.min(MAX_PLAYERS - room.players.size, 19);
+    if (space < 1) return send(res, 400, { error: 'room_full' });
+
+    return send(res, 200, startBots({ port: PORT, code: room.code, count: Math.min(count, space) }));
+  }
+  if (url.pathname === '/api/sim' && req.method === 'DELETE') {
+    const body = await readBody(req);
+    const room = getRoom(body.code);
+    if (!room) return send(res, 404, { error: 'no_such_room' });
+    return send(res, 200, stopBots(room.code));
+  }
+  if (url.pathname === '/api/sim' && req.method === 'GET') {
+    const room = getRoom(url.searchParams.get('code'));
+    if (!room) return send(res, 404, { error: 'no_such_room' });
+    return send(res, 200, simStatus(room.code));
   }
 
   if (url.pathname === '/api/room' && req.method === 'POST') {
