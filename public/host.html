@@ -8,9 +8,19 @@
 <link rel="stylesheet" href="/app.css">
 <style>
   .join-url {
-    font-family: var(--mono); font-size: clamp(16px, 2.4vw, 30px); font-weight: 600;
-    color: var(--ink); word-break: break-all;
+    font-family: var(--mono); font-size: clamp(15px, 1.5vw, 21px); font-weight: 600;
+    color: var(--ink); overflow-wrap: anywhere;
   }
+  /* QR codes need a genuinely white quiet zone to scan — the dark panel behind
+     it is not good enough for a phone camera across a room. */
+  .qr-card {
+    background: #fff; border-radius: 12px; padding: 12px;
+    width: clamp(180px, 17vw, 260px); flex: none;
+  }
+  .qr-card img { display: block; width: 100%; height: auto; }
+  /* Stacked, not side by side: the URL needs the panel's full width, or a real
+     host like seat-draft.onrender.com wraps mid-word. */
+  .join-side { display: flex; flex-direction: column; gap: 14px; align-items: center; text-align: center; }
   /* This page lives on a projector: centre the whole block vertically and let
      it use the width, rather than huddling in the top-left of a 1080p screen. */
   .wrap { max-width: 1700px; }
@@ -174,9 +184,17 @@
           <div id="code" class="code code-hero"></div>
         </div>
 
-        <div class="panel stack" style="gap:8px">
-          <div class="muted small" style="font-weight:600; letter-spacing:.1em">GO TO</div>
-          <div id="joinUrl" class="join-url"></div>
+        <div class="panel">
+          <div class="join-side">
+            <div class="qr-card">
+              <img id="qr" alt="QR code to join the room" width="512" height="512">
+            </div>
+            <div class="grow stack" style="gap:6px">
+              <div class="muted small" style="font-weight:600; letter-spacing:.1em">SCAN, OR GO TO</div>
+              <div id="joinUrl" class="join-url"></div>
+              <div class="muted small">and enter the code</div>
+            </div>
+          </div>
         </div>
 
         <div class="panel center">

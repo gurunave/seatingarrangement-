@@ -140,6 +140,9 @@ function joinAsHost() {
   // The URL people actually type. On a laptop this is the LAN address, which
   // is exactly what the room needs to see.
   $('joinUrl').textContent = `${location.host}`;
+  // Built server-side from the Host header, so it points wherever the room
+  // actually is — a LAN address on your laptop, a domain when deployed.
+  $('qr').src = `/api/qr?code=${encodeURIComponent(session.code)}`;
   show('lobbyView');
 }
 

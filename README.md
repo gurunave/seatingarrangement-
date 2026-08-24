@@ -32,8 +32,12 @@ Three screens:
 | `/host` | the projector | Room code, live roster, and the controls that drive the game. |
 | `/` | everyone's phone | Enter the code and your name. |
 
-Do `/setup` once, then open `/host` on the machine driving the screen and read the
-code out. People can also scan/click a prefilled link: `http://<host>/?c=ABCD`.
+Do `/setup` once, then open `/host` on the machine driving the screen. The lobby
+shows a QR code — scanning it opens the join page with the room code already filled
+in, so nobody types a URL off the projector. The same link works pasted into chat:
+`http://<host>/?c=ABCD`. The QR is built server-side from the Host header the
+browser used, so it points at wherever the app actually is (LAN IP or domain)
+with nothing to configure.
 
 ## The maths sprint
 
@@ -119,8 +123,11 @@ takes a minute to redo in `/setup`; if that matters, attach a persistent volume.
 
 ```bash
 npm test           # 150 tests — boots servers on scratch ports
-npm run test:ui    # 85 browser tests (needs: npm i -D playwright)
+npm run test:ui    # 95 browser tests (needs: npm i --no-save playwright jsqr)
 ```
+
+Browser-test tooling is deliberately not in `package.json`: a plain `npm install`
+on a deploy host would otherwise pull a browser download into every deploy.
 
 | Suite | Covers |
 |---|---|
@@ -130,3 +137,4 @@ npm run test:ui    # 85 browser tests (needs: npm i -D playwright)
 | `draft` | Tier maths, the within-tier shuffle actually varying, turn order, illegal picks, the auto-assigned tail |
 | `sprint-timeout` / `draft-timeout` | Both deadlines, against servers run with short limits |
 | `ui` / `ui-sprint` / `ui-draft` | Real Chromium: a full 20-person game from setup to the exported PNG |
+| `ui-qr` | The lobby QR decodes back to the join URL, and following it lands in the lobby |

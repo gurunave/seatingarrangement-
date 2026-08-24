@@ -4,6 +4,7 @@ import { join, normalize, extname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { randomUUID } from 'node:crypto';
 import { WebSocketServer } from 'ws';
+import QRCode from 'qrcode';
 import { loadLayout, saveLayout, sanitizeLayout, defaultLayout, GRID, PERKS } from './store.js';
 import {
   createRoom, getRoom, addPlayer, removePlayer, broadcast, publicState,
@@ -68,6 +69,28 @@ async function handleApi(req, res, url) {
     const body = await readBody(req);
     return send(res, 200, { layout: await saveLayout(sanitizeLayout(body)) });
   }
+  // The QR is built from the Host header the browser actually used, so it
+  // works whether the room is on a LAN IP or a real domain without anyone
+  // having to configure a base URL.
+  if (url.pathname === '/api/qr' && req.method === 'GET') {
+    const code = String(url.searchParams.get('code') || '').toUpperCase();
+    if (!/^[A-Z]{4}$/.test(code)) return send(res, 400, { error: 'bad_code' });
+
+    const host = String(req.headers.host || '').slice(0, 255);
+    if (!host) return send(res, 400, { error: 'no_host' });
+    const proto = String(req.headers['x-forwarded-proto'] || '').split(',')[0].trim() || 'http';
+
+    const svg = await QRCode.toString(`${proto}://${host}/?c=${code}`, {
+      type: 'svg',
+      width: 512,
+      margin: 1,
+      errorCorrectionLevel: 'M',   // survives a phone camera at an angle across a room
+      color: { dark: '#0e1116', light: '#ffffff' }
+    });
+    res.writeHead(200, { 'content-type': 'image/svg+xml', 'cache-control': 'no-cache' });
+    return res.end(svg);
+  }
+
   if (url.pathname === '/api/room' && req.method === 'POST') {
     const layout = await loadLayout();
     if (layout.desks.length === 0) return send(res, 400, { error: 'no_desks' });
