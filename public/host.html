@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Big screen · Seat Draft</title>
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/app.css">
+<style>
+  .join-url {
+    font-family: var(--mono); font-size: clamp(16px, 2.4vw, 30px); font-weight: 600;
+    color: var(--ink); word-break: break-all;
+  }
+  /* This page lives on a projector: centre the whole block vertically and let
+     it use the width, rather than huddling in the top-left of a 1080p screen. */
+  .wrap { max-width: 1700px; }
+  #lobbyView { min-height: calc(100vh - 48px); display: flex; align-items: center; }
+  .lobby { width: 100%; display: grid; grid-template-columns: minmax(0, 420px) minmax(0, 1fr); gap: 26px; align-items: stretch; }
+  /* The roster is the thing the room is watching fill up — give it the height
+     to look like a destination rather than a stub. */
+  .roster-panel { min-height: min(74vh, 680px); display: flex; flex-direction: column; }
+  .counter { font-size: clamp(40px, 6vw, 76px); font-weight: 800; letter-spacing: -.03em; line-height: 1; }
+  .counter .of { color: var(--ink-dim); font-size: .42em; font-weight: 600; letter-spacing: 0; }
+  .controls { border-top: 1px solid var(--line); padding-top: 14px; margin-top: 16px; }
+  .manage-row {
+    display: flex; align-items: center; gap: 8px;
+    padding: 7px 0; border-bottom: 1px solid var(--line); font-size: 14px;
+  }
+  .manage-row:last-child { border-bottom: none; }
+  .manage-list { max-height: 260px; overflow-y: auto; }
+  .tag { font-size: 11px; font-weight: 700; letter-spacing: .06em; color: var(--warn); }
+  @media (max-width: 1000px) { .lobby { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<div id="conn" class="conn hidden">Reconnecting…</div>
+
+<div class="wrap">
+
+  <!-- before a room exists -->
+  <section id="startView" class="stack center hidden" style="max-width:560px; margin:14vh auto 0">
+    <h1 style="font-size:32px">Seat Draft</h1>
+    <p class="muted">Open this on the screen everyone can see. Your team joins from their phones.</p>
+    <div class="panel stack">
+      <div><span id="deskCount" style="font-size:32px; font-weight:700">–</span>
+        <span class="muted"> desks in your saved layout</span></div>
+      <div id="deskWarn" class="notice err hidden"></div>
+      <button id="createBtn" class="primary block">Create a room</button>
+      <a href="/setup"><button class="block">Edit room layout</button></a>
+    </div>
+  </section>
+
+  <!-- lobby -->
+  <section id="lobbyView" class="hidden">
+    <div class="lobby">
+
+      <div class="stack">
+        <div class="panel center stack" style="gap:10px">
+          <div class="muted small" style="font-weight:600; letter-spacing:.1em">ROOM CODE</div>
+          <div id="code" class="code code-hero"></div>
+        </div>
+
+        <div class="panel stack" style="gap:8px">
+          <div class="muted small" style="font-weight:600; letter-spacing:.1em">GO TO</div>
+          <div id="joinUrl" class="join-url"></div>
+        </div>
+
+        <div class="panel center">
+          <div class="counter"><span id="joined">0</span><span class="of"> / <span id="seats">0</span> seats</span></div>
+          <div class="muted small" style="margin-top:6px">joined</div>
+        </div>
+
+        <button id="startBtn" class="primary block" disabled>Start the maths sprint</button>
+        <div id="startHint" class="muted small center">Waiting for people to join…</div>
+      </div>
+
+      <div class="panel roster-panel">
+        <div class="row spread" style="margin-bottom:14px">
+          <h2 style="font-size:20px">In the room</h2>
+          <button id="toggleManage" class="tiny">Manage</button>
+        </div>
+
+        <div id="roster" class="roster"></div>
+        <div id="empty" class="muted center grow" style="display:flex; align-items:center; justify-content:center">Nobody yet. Read out the code.</div>
+
+        <div id="manage" class="controls hidden">
+          <div class="row" style="margin-bottom:12px">
+            <input type="text" id="addName" class="grow" maxlength="24" placeholder="Add someone without a phone">
+            <button id="addBtn">Add</button>
+          </div>
+          <div id="manageErr" class="notice err hidden" style="margin-bottom:10px"></div>
+          <div id="manageList" class="manage-list"></div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+</div>
+<script type="module" src="/host.js"></script>
+</body>
+</html>

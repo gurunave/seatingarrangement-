@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0e1116">
+<title>Seat Draft</title>
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/app.css">
+<style>
+  body { display: flex; align-items: center; justify-content: center; padding: 20px 0 40px; }
+  .wrap-narrow { width: 100%; }
+  #codeInput {
+    font-family: var(--mono); font-size: 30px; font-weight: 700;
+    letter-spacing: .28em; text-indent: .28em; text-align: center; text-transform: uppercase;
+  }
+  .waiting-dot {
+    width: 10px; height: 10px; border-radius: 50%; background: var(--good);
+    animation: pulse 1.6s ease-in-out infinite;
+  }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: .25; } }
+  .big-name { font-size: 30px; font-weight: 700; letter-spacing: -.02em; }
+</style>
+</head>
+<body>
+<div id="conn" class="conn hidden">Reconnecting…</div>
+
+<div class="wrap-narrow stack">
+
+  <!-- join form -->
+  <section id="joinView" class="stack">
+    <div class="center stack" style="gap:6px; margin-bottom:6px">
+      <h1 style="font-size:26px">Seat Draft</h1>
+      <p class="muted small">Enter the code on the big screen.</p>
+    </div>
+
+    <div class="panel stack">
+      <div>
+        <label class="field-label" for="codeInput">Room code</label>
+        <input type="text" id="codeInput" maxlength="4" autocomplete="off"
+               autocapitalize="characters" spellcheck="false" inputmode="text" placeholder="····">
+      </div>
+      <div>
+        <label class="field-label" for="nameInput">Your name</label>
+        <input type="text" id="nameInput" maxlength="24" autocomplete="name" placeholder="How the room knows you">
+      </div>
+      <button id="joinBtn" class="primary block">Join</button>
+      <div id="joinErr" class="notice err hidden"></div>
+    </div>
+  </section>
+
+  <!-- lobby -->
+  <section id="lobbyView" class="stack hidden">
+    <div class="panel center stack" style="gap:14px; padding:30px 20px">
+      <div class="row" style="justify-content:center; gap:9px">
+        <span class="waiting-dot"></span>
+        <span class="small muted" style="font-weight:600">You're in</span>
+      </div>
+      <div id="myName" class="big-name"></div>
+      <p class="muted small">Keep this screen open. The game starts on the big screen.</p>
+    </div>
+
+    <div class="panel center">
+      <div style="font-size:26px; font-weight:700"><span id="playerCount">0</span></div>
+      <div class="muted small">people joined so far</div>
+    </div>
+
+    <button id="leaveBtn" class="tiny" style="align-self:center; background:none; border:none; color:var(--ink-dim)">
+      Not you? Leave
+    </button>
+  </section>
+
+  <!-- kicked / replaced -->
+  <section id="doneView" class="stack hidden">
+    <div class="panel center stack" style="gap:12px; padding:30px 20px">
+      <div id="doneMsg" style="font-weight:600"></div>
+      <button id="againBtn" class="primary">Join again</button>
+    </div>
+  </section>
+
+</div>
+<script type="module" src="/join.js"></script>
+</body>
+</html>

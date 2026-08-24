@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Room setup · Seat Draft</title>
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/app.css">
+<style>
+  .setup-grid { display: grid; grid-template-columns: minmax(0,1fr) 300px; gap: 20px; align-items: start; }
+  .cell { cursor: pointer; transition: background .1s ease; }
+  .cell.empty:hover { background: rgba(77,157,255,.12); border-color: rgba(77,157,255,.4); }
+  .desk.selected { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .desk.moving { opacity: .4; }
+  .count { font-size: 34px; font-weight: 700; letter-spacing: -.02em; }
+  .count.short { color: var(--warn); }
+  @media (max-width: 900px) { .setup-grid { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="row spread" style="margin-bottom:18px; flex-wrap:wrap; gap:14px">
+    <div>
+      <h1>Room setup</h1>
+      <p class="muted small" style="margin-top:6px">
+        Click an empty square to add a desk. Click a desk to rename it, tag it, or move it.
+      </p>
+    </div>
+    <div class="row">
+      <a href="/host"><button>Big screen &rarr;</button></a>
+      <button id="save" class="primary">Save layout</button>
+    </div>
+  </div>
+
+  <div id="notice" class="notice hidden" style="margin-bottom:14px"></div>
+
+  <div class="setup-grid">
+    <div class="panel">
+      <div class="row spread" style="margin-bottom:12px">
+        <div class="legend">
+          <span><i style="background:var(--window)"></i>Window</span>
+          <span><i style="background:var(--meh)"></i>Near the AC</span>
+          <span><i style="background:#6b7a92"></i>Corner / Quiet / Social</span>
+        </div>
+        <div class="row small">
+          <label class="field-label" for="windowSide" style="margin:0">Window side</label>
+          <select id="windowSide" style="width:auto; padding:7px 10px; font-size:14px">
+            <option value="top">Top</option><option value="bottom">Bottom</option>
+            <option value="left">Left</option><option value="right">Right</option>
+          </select>
+        </div>
+      </div>
+      <div id="map" class="map"></div>
+    </div>
+
+    <div class="stack">
+      <div class="panel center">
+        <div id="count" class="count">0</div>
+        <div class="muted small">desks placed</div>
+      </div>
+
+      <div id="editor" class="panel stack hidden">
+        <h3 style="font-size:15px">Selected desk</h3>
+        <div>
+          <label class="field-label" for="deskName">Name</label>
+          <input type="text" id="deskName" maxlength="12" placeholder="e.g. A1">
+        </div>
+        <div>
+          <label class="field-label" for="deskPerk">Tag</label>
+          <select id="deskPerk"></select>
+        </div>
+        <button id="move">Move to another square</button>
+        <button id="delete" class="danger">Delete desk</button>
+      </div>
+
+      <div id="hint" class="panel muted small">
+        No desk selected. Click one on the map to edit it.
+      </div>
+
+      <div class="panel stack">
+        <h3 style="font-size:15px">Quick actions</h3>
+        <button id="fill">Reset to 20 desks</button>
+        <button id="clear" class="danger">Clear all</button>
+      </div>
+    </div>
+  </div>
+</div>
+<script type="module" src="/setup.js"></script>
+</body>
+</html>
