@@ -1,4 +1,6 @@
 // Rehearsal control panel: start/stop bots and watch what they're up to.
+import { adminFetch } from '/admin.js';
+
 const $ = id => document.getElementById(id);
 
 let pollTimer = null;
@@ -26,7 +28,7 @@ async function start() {
 
   $('startBtn').disabled = true;
   try {
-    const res = await fetch('/api/sim', {
+    const res = await adminFetch('/api/sim', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ code, count: Number($('countInput').value) })
@@ -44,7 +46,7 @@ async function start() {
 async function stop() {
   const code = $('codeInput').value.trim();
   if (code.length !== 4) return;
-  const res = await fetch('/api/sim', {
+  const res = await adminFetch('/api/sim', {
     method: 'DELETE',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify({ code })
@@ -78,6 +80,8 @@ function render(data) {
 
 function explain(code) {
   return {
+    passcode_required: 'This server needs the manager passcode.',
+    bad_passcode: 'Wrong passcode.',
     no_such_room: 'No room with that code — create one on the big screen first.',
     already_started: 'That game has already started. Bots can only join the lobby.',
     room_full: 'The room is already full.',

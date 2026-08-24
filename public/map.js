@@ -36,10 +36,14 @@ export function renderMap(el, layout, { assignments = [], offered = [], taken = 
       const desk = byCell.get(`${r}:${c}`);
       if (!desk) { cells.push('<div class="cell empty"></div>'); continue; }
 
-      const seat = seatOf.get(desk.id);
+      // A reserved desk is permanently its owner's — drawn occupied from the start.
+      const seat = desk.reservedFor
+        ? { name: desk.reservedFor, reserved: true }
+        : seatOf.get(desk.id);
       const classes = ['cell', 'desk'];
       if (seat) classes.push('taken');
       if (seat?.auto) classes.push('auto');
+      if (seat?.reserved) classes.push('reserved');
       if (offeredSet.has(desk.id)) classes.push('offered');
       if (taken === desk.id) classes.push('just-taken');
 

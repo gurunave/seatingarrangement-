@@ -9,6 +9,8 @@ services:
       # Keeps the saved room layout across restarts and image upgrades.
       - seat-draft-data:/app/data
     environment:
+      # On a public domain, protect the manager pages with a passcode:
+      # ADMIN_PASSCODE: "change-me"
       # Uncomment to change the pace of the game:
       # SPRINT_SECONDS: "120"
       # DRAFT_SECONDS: "20"

@@ -142,6 +142,8 @@
   .map .desk[data-perk="social"] { border-color: #6b7a92; }
   .map .desk.taken { background: #33415c; border-color: #55688c; }
   .map .desk.taken.auto { background: #3a3446; border-color: #605577; }
+  .map .desk.reserved { background: #2c3038; border-color: #7a6f96; }
+  .map .desk.reserved .who { color: #b9a9e0; }
   .map .desk.offered {
     border-color: var(--accent); background: rgba(77,157,255,.22);
     box-shadow: 0 0 0 2px rgba(77,157,255,.35);
@@ -317,6 +319,7 @@
           <div class="legend">
             <span><i style="background:#55688c"></i>chosen</span>
             <span><i style="background:#605577"></i>auto-assigned</span>
+            <span><i style="background:transparent; box-shadow:inset 0 0 0 2px #7a6f96"></i>reserved</span>
             <span><i style="background:transparent; box-shadow:inset 0 0 0 2px var(--window)"></i>window</span>
           </div>
         </div>

@@ -187,7 +187,7 @@ export function startDraft(room) {
     order,
     index: 0,
     assignments: new Map(),   // deskId -> { playerId, name, auto }
-    autoTail: autoTailCount(room.layout.desks.length, order.length),
+    autoTail: autoTailCount(availableDesks(room.layout).length, order.length),
     current: null,
     timer: null
   };
@@ -196,8 +196,11 @@ export function startDraft(room) {
   return room.draft;
 }
 
+// A desk with a permanent owner never enters the game.
+export const availableDesks = layout => layout.desks.filter(d => !d.reservedFor);
+
 export const remainingDeskIds = room =>
-  room.layout.desks.filter(d => !room.draft.assignments.has(d.id)).map(d => d.id);
+  availableDesks(room.layout).filter(d => !room.draft.assignments.has(d.id)).map(d => d.id);
 
 // Starts the next person's turn, or closes the draft out when the only people
 // left are the tail who have nothing meaningful to choose between.
@@ -318,7 +321,7 @@ export function publicState(room) {
     code: room.code,
     phase: room.phase,
     layout: room.layout,
-    seatCount: room.layout.desks.length,
+    seatCount: availableDesks(room.layout).length,
     sprint: room.phase === 'sprint' ? sprintSummary(room) : null,
     results: room.results,
     questionTotal: room.sprint ? room.sprint.questions.length : null,

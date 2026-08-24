@@ -13,6 +13,7 @@ const COLORS = {
   ink: '#eef2f8', dim: '#97a3b6',
   chosen: '#253044', chosenLine: '#3d4a63',
   auto: '#2a2733', autoLine: '#4a4358',
+  reserved: '#2c2838', reservedLine: '#7a6f96',
   window: '#4d9dff', meh: '#ff8f6b', accent: '#4d9dff'
 };
 
@@ -49,10 +50,11 @@ export function drawMap(canvas, layout, assignments) {
   for (const desk of desks) {
     const x = PAD + (desk.c - b.minC) * (CELL + GAP);
     const y = HEADER + (desk.r - b.minR) * (CELL + GAP);
-    const seat = seatOf.get(desk.id);
+    const seat = desk.reservedFor ? { name: desk.reservedFor, reserved: true } : seatOf.get(desk.id);
 
-    ctx.fillStyle = seat ? (seat.auto ? COLORS.auto : COLORS.chosen) : COLORS.panel;
-    ctx.strokeStyle = desk.perk === 'window' ? COLORS.window
+    ctx.fillStyle = seat ? (seat.reserved ? COLORS.reserved : seat.auto ? COLORS.auto : COLORS.chosen) : COLORS.panel;
+    ctx.strokeStyle = seat?.reserved ? COLORS.reservedLine
+      : desk.perk === 'window' ? COLORS.window
       : desk.perk === 'meh' ? COLORS.meh
       : seat ? (seat.auto ? COLORS.autoLine : COLORS.chosenLine) : COLORS.line;
     ctx.lineWidth = 2;
@@ -74,7 +76,11 @@ export function drawMap(canvas, layout, assignments) {
 
   ctx.fillStyle = COLORS.dim;
   ctx.font = '500 15px Inter, system-ui, sans-serif';
-  ctx.fillText(`${assignments.length} seated · window side: ${layout.windowSide}`, PAD, height - 22);
+  const reserved = desks.filter(d => d.reservedFor).length;
+  ctx.fillText(
+    `${assignments.length} seated${reserved ? ` · ${reserved} reserved` : ''} · window side: ${layout.windowSide}`,
+    PAD, height - 22
+  );
 
   return canvas;
 }
@@ -122,6 +128,7 @@ export function seatingList(layout, assignments) {
     .slice()
     .sort((a, b) => a.r - b.r || a.c - b.c)
     .map(d => {
+      if (d.reservedFor) return `${d.name}\t${d.reservedFor} (reserved)`;
       const seat = seatOf.get(d.id);
       return `${d.name}\t${seat ? seat.name : '—'}`;
     })

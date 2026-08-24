@@ -1,4 +1,4 @@
-import { ok, report, client, isType, seedLayout, newRoom, joinPlayers, runSprint } from './helpers.mjs';
+import { BASE, ok, report, client, isType, seedLayout, newRoom, joinPlayers, runSprint } from './helpers.mjs';
 
 const NAMES = ['Naveen', 'Priya', 'Arjun', 'Deepa', 'Rahul', 'Sneha'];
 
@@ -123,6 +123,59 @@ ok(s.phase === 'result', 'draft completed');
 ok(s.draft.assignments.filter(a => a.auto).length === 3, 'exactly three people were auto-assigned');
 ok(s.draft.assignments.filter(a => !a.auto).length === 3, 'the other three chose');
 ok(new Set(s.draft.assignments.map(a => a.deskId)).size === 6, 'all six desks used exactly once');
+
+console.log('\n— reserved desks stay out of the game —');
+{
+  // 8 desks, two of them permanently owned: only 6 are in play.
+  const desks = Array.from({ length: 8 }, (_, i) => ({
+    id: `d${i + 1}`, name: `S${i + 1}`, r: 0, c: i, perk: 'none'
+  }));
+  desks[0].reservedFor = 'Naveen';       // S1
+  desks[4].reservedFor = 'Rajashekara';  // S5
+  await fetch(`${BASE}/api/layout`, {
+    method: 'POST', headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ windowSide: 'top', desks })
+  });
+
+  const roomR = await newRoom();
+  const hostR = client(); await hostR.ready;
+  hostR.send({ type: 'host:join', code: roomR.code, hostToken: roomR.hostToken });
+  let st = (await hostR.next(isType('state'))).state;
+  ok(st.seatCount === 6, 'seat count excludes the two reserved desks');
+  ok(st.layout.desks.find(d => d.id === 'd1').reservedFor === 'Naveen', 'the reservation survives the round trip');
+
+  // 7 players for 6 available desks must be refused, even though 8 desks exist.
+  const seven = await joinPlayers(roomR.code, ['P1','P2','P3','P4','P5','P6','P7']);
+  await hostR.next(m => m.type === 'state' && m.state.players.length === 7);
+  await runSprint(hostR, roomR.code, seven);
+  hostR.send({ type: 'host:startDraft', code: roomR.code });
+  ok((await hostR.next(isType('error'))).code === 'not_enough_desks',
+     'capacity is judged on available desks, not total desks');
+  seven[6].c.close();
+  hostR.send({ type: 'host:removePlayer', code: roomR.code, playerId: seven[6].id });
+  await hostR.next(m => m.type === 'state' && m.state.players.length === 6);
+
+  hostR.send({ type: 'host:startDraft', code: roomR.code });
+  st = (await hostR.next(m => m.type === 'state' && m.state.phase === 'draft')).state;
+
+  let guard = 0;
+  const offered = new Set();
+  while (st.phase === 'draft' && st.draft.current && guard++ < 10) {
+    st.draft.current.options.forEach(o => offered.add(o.id));
+    const turn = seven.find(p => p.id === st.draft.current.playerId);
+    turn.c.send({ type: 'draft:pick', code: roomR.code, deskId: st.draft.current.options[0].id });
+    st = (await hostR.next(m => m.type === 'state' &&
+        (m.state.phase === 'result' || m.state.draft?.index > st.draft.index))).state;
+  }
+  ok(st.phase === 'result', 'the draft completed');
+  ok(!offered.has('d1') && !offered.has('d5'), 'a reserved desk was never offered to anyone');
+  ok(st.draft.assignments.every(a => a.deskId !== 'd1' && a.deskId !== 'd5'),
+     'and nobody was seated at one');
+  ok(st.draft.assignments.length === 6, 'all six players fit on the six available desks');
+
+  seven.slice(0, 6).forEach(p => p.c.close());
+  hostR.close();
+}
 
 console.log('\n— absent people are seated instantly, never a countdown —');
 {

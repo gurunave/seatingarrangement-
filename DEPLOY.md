@@ -111,5 +111,6 @@ To upgrade later: `git pull && sudo npm ci --omit=dev && sudo systemctl restart 
 | Env var | Default | Meaning |
 |---|---|---|
 | `PORT` | 3000 | Port the app listens on |
+| `ADMIN_PASSCODE` | *(unset = open)* | When set, saving the layout, creating rooms, and the rehearsal bots all require this passcode. **Set it on any public domain.** Pages prompt once and remember it for the browser session. Joining and playing never need it. |
 | `SPRINT_SECONDS` | 90 | Length of the maths sprint |
 | `DRAFT_SECONDS` | 15 | Per-person pick timer in the draft |

@@ -2,6 +2,7 @@
 // room the laptop driving the projector is the only authority that matters.
 import { connect, errorText } from '/net.js';
 import { renderMap, PERK_SHORT } from '/map.js';
+import { adminFetch } from '/admin.js';
 import { downloadMapImage, seatingList } from '/mapimage.js';
 
 const $ = id => document.getElementById(id);
@@ -122,7 +123,12 @@ async function roomStillExists(code) {
 async function createRoom() {
   $('createBtn').disabled = true;
   try {
-    const res = await fetch('/api/room', { method: 'POST' });
+    const res = await adminFetch('/api/room', { method: 'POST' });
+    if (res.status === 401) {
+      warn('This server needs the manager passcode to create a room.');
+      $('createBtn').disabled = false;
+      return;
+    }
     const data = await res.json();
     if (!res.ok) throw new Error(data.error);
     session = { code: data.code, hostToken: data.hostToken };

@@ -71,10 +71,12 @@ export function sanitizeLayout(input) {
     if (seen.has(cell)) continue;
     seen.add(cell);
     const name = String(d?.name ?? '').trim().slice(0, 12) || `${r + 1}-${c + 1}`;
+    const reservedFor = String(d?.reservedFor ?? '').replace(/\s+/g, ' ').trim().slice(0, 24);
     desks.push({
       id: typeof d?.id === 'string' && d.id ? d.id.slice(0, 24) : `d${desks.length + 1}`,
       name, r, c,
-      perk: Object.hasOwn(PERKS, d?.perk) ? d.perk : 'none'
+      perk: Object.hasOwn(PERKS, d?.perk) ? d.perk : 'none',
+      ...(reservedFor ? { reservedFor } : {})
     });
     if (desks.length >= 60) break;
   }

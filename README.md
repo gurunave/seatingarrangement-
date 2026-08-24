@@ -82,6 +82,10 @@ screen highlights them on the map and the room heckles. Tap one to claim it. If 
 clock runs out you get one of them anyway, so a phone in someone's pocket never
 stalls twenty people — and the host can skip a turn outright.
 
+**Reserved desks.** In `/setup`, give a desk a "Reserved for" name and it becomes
+permanently that person's: it never enters the draft, doesn't count toward
+capacity, and shows its owner on every map including the exported PNG.
+
 **Absent people are handled cleanly.** Add anyone who's out that day via the big
 screen's Manage panel ("add someone without a phone"). They score 0, rank at the
 bottom, and when the draft reaches them they're seated **instantly** from the

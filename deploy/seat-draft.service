@@ -18,6 +18,9 @@ Restart=on-failure
 RestartSec=3
 Environment=NODE_ENV=production
 Environment=PORT=3000
+# On a public domain, protect the manager pages (setup, simulate, room
+# creation) with a passcode. Unset = open, fine for a LAN-only install.
+# Environment=ADMIN_PASSCODE=change-me
 # Uncomment to change the pace of the game:
 # Environment=SPRINT_SECONDS=120
 # Environment=DRAFT_SECONDS=20

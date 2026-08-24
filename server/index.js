@@ -7,8 +7,9 @@ import { WebSocketServer } from 'ws';
 import QRCode from 'qrcode';
 import { startBots, stopBots, status as simStatus } from './sim.js';
 import { loadLayout, saveLayout, sanitizeLayout, defaultLayout, GRID, PERKS } from './store.js';
+import { timingSafeEqual } from 'node:crypto';
 import {
-  createRoom, getRoom, addPlayer, removePlayer, broadcast, publicState,
+  createRoom, getRoom, addPlayer, removePlayer, broadcast, publicState, availableDesks,
   normalizeName, nameTaken, sweepRooms, MAX_PLAYERS,
   startSprint, endSprint, recordAnswer, currentQuestion, pendingPlayers,
   startDraft, applyPick, skipTurn
@@ -29,6 +30,26 @@ const MIME = {
 // A room's control token. Whoever created the room drives it; a player who
 // guesses the URL of the host screen cannot kick people out of the lobby.
 const hostTokens = new Map(); // code -> token
+
+// Optional passcode for the manager's actions (saving the layout, creating
+// rooms, driving bots). Unset = open, which is right for a laptop on a LAN;
+// set it when the app lives on a public domain.
+const ADMIN_PASSCODE = process.env.ADMIN_PASSCODE || '';
+
+function checkAdmin(req) {
+  if (!ADMIN_PASSCODE) return 'ok';
+  const given = String(req.headers['x-admin-passcode'] || '');
+  if (!given) return 'passcode_required';
+  const a = Buffer.from(given), b = Buffer.from(ADMIN_PASSCODE);
+  return a.length === b.length && timingSafeEqual(a, b) ? 'ok' : 'bad_passcode';
+}
+
+function requireAdmin(req, res) {
+  const verdict = checkAdmin(req);
+  if (verdict === 'ok') return true;
+  send(res, 401, { error: verdict });
+  return false;
+}
 
 const server = createServer(async (req, res) => {
   try {
@@ -67,6 +88,7 @@ async function handleApi(req, res, url) {
     return send(res, 200, { layout: defaultLayout() });
   }
   if (url.pathname === '/api/layout' && req.method === 'POST') {
+    if (!requireAdmin(req, res)) return;
     const body = await readBody(req);
     return send(res, 200, { layout: await saveLayout(sanitizeLayout(body)) });
   }
@@ -94,6 +116,7 @@ async function handleApi(req, res, url) {
 
   // Rehearsal bots — lets the manager run the whole game solo before game day.
   if (url.pathname === '/api/sim' && req.method === 'POST') {
+    if (!requireAdmin(req, res)) return;
     const body = await readBody(req);
     const room = getRoom(body.code);
     if (!room) return send(res, 404, { error: 'no_such_room' });
@@ -107,6 +130,7 @@ async function handleApi(req, res, url) {
     return send(res, 200, startBots({ port: PORT, code: room.code, count: Math.min(count, space) }));
   }
   if (url.pathname === '/api/sim' && req.method === 'DELETE') {
+    if (!requireAdmin(req, res)) return;
     const body = await readBody(req);
     const room = getRoom(body.code);
     if (!room) return send(res, 404, { error: 'no_such_room' });
@@ -119,6 +143,7 @@ async function handleApi(req, res, url) {
   }
 
   if (url.pathname === '/api/room' && req.method === 'POST') {
+    if (!requireAdmin(req, res)) return;
     const layout = await loadLayout();
     if (layout.desks.length === 0) return send(res, 400, { error: 'no_desks' });
     const room = createRoom(structuredClone(layout));
@@ -290,7 +315,7 @@ function handleHostAction(ws, room, msg) {
 
   if (msg.type === 'host:startDraft') {
     if (room.phase !== 'reveal') return reply(ws, { type: 'error', code: 'not_ready_to_draft' });
-    if (room.layout.desks.length < room.players.size) {
+    if (availableDesks(room.layout).length < room.players.size) {
       return reply(ws, { type: 'error', code: 'not_enough_desks' });
     }
     startDraft(room);

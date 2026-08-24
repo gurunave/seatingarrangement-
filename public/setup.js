@@ -1,5 +1,7 @@
 // Layout editor. The whole layout lives in one object; every action mutates it
 // and re-renders. At 70 cells that is far cheaper than tracking diffs.
+import { adminFetch } from '/admin.js';
+
 const $ = id => document.getElementById(id);
 
 let grid = { cols: 10, rows: 7 };
@@ -48,6 +50,15 @@ function wireEvents() {
     desk.perk = e.target.value;
     markDirty();
     render();
+  });
+
+  $('deskReserved').addEventListener('input', e => {
+    const desk = selected();
+    if (!desk) return;
+    const name = e.target.value.trim().slice(0, 24);
+    if (name) desk.reservedFor = name; else delete desk.reservedFor;
+    markDirty();
+    renderMap();
   });
 
   $('move').addEventListener('click', () => {
@@ -143,11 +154,15 @@ function renderMap() {
         cells.push(`<div class="cell empty" data-r="${r}" data-c="${c}"></div>`);
         continue;
       }
-      const cls = ['cell', 'desk', desk.id === selectedId ? 'selected' : '', desk.id === movingId ? 'moving' : ''];
+      const cls = ['cell', 'desk', desk.id === selectedId ? 'selected' : '', desk.id === movingId ? 'moving' : '',
+                   desk.reservedFor ? 'reserved' : ''];
       const short = perks[desk.perk]?.short || '';
+      const sub = desk.reservedFor
+        ? `<span class="perk">${esc(desk.reservedFor)}</span>`
+        : short ? `<span class="perk">${esc(short)}</span>` : '';
       cells.push(
-        `<div class="${cls.join(' ')}" data-r="${r}" data-c="${c}" data-perk="${desk.perk}" title="${esc(perks[desk.perk]?.label || '')}">
-           <span>${esc(desk.name)}</span>${short ? `<span class="perk">${esc(short)}</span>` : ''}
+        `<div class="${cls.join(' ')}" data-r="${r}" data-c="${c}" data-perk="${desk.perk}" title="${esc(desk.reservedFor ? `Reserved for ${desk.reservedFor}` : perks[desk.perk]?.label || '')}">
+           <span>${esc(desk.name)}</span>${sub}
          </div>`
       );
     }
@@ -168,6 +183,7 @@ function renderSidebar() {
   if (desk) {
     if ($('deskName').value !== desk.name) $('deskName').value = desk.name;
     $('deskPerk').value = desk.perk;
+    if ($('deskReserved').value !== (desk.reservedFor || '')) $('deskReserved').value = desk.reservedFor || '';
     $('move').textContent = movingId ? 'Cancel move' : 'Move to another square';
   }
 }
@@ -180,7 +196,7 @@ function markDirty() {
 async function save() {
   $('save').disabled = true;
   try {
-    const res = await fetch('/api/layout', {
+    const res = await adminFetch('/api/layout', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify(layout)
