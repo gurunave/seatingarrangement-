@@ -10,7 +10,13 @@ const HUMANS = ['Naveen', 'Priya', 'Arjun', 'Deepa'];
 const BOTS = ['Rahul','Sneha','Vikram','Ananya','Karthik','Meera','Sanjay','Divya',
               'Rohit','Kavya','Aditya','Nisha','Suresh','Pooja','Manoj','Lakshmi'];
 
-await seedLayout(20);
+const seeded = await seedLayout(20);
+// Give one desk a facing so the arrow path renders during the game.
+seeded[2].facing = 'right';
+await fetch(`${BASE}/api/layout`, {
+  method: 'POST', headers: { 'content-type': 'application/json' },
+  body: JSON.stringify({ windowSide: 'top', desks: seeded })
+});
 
 const browser = await pw.chromium.launch({ executablePath: process.env.CHROMIUM_PATH || undefined });
 async function page(ctx, label) {
@@ -130,6 +136,19 @@ while (guard++ < 60) {
 }
 await host.waitForSelector('#resultView:not(.hidden)', { timeout: 25000 });
 ok(true, 'the draft completed and the final seating came up');
+
+console.log('\n— celebrations fired —');
+const fx = await host.evaluate(() => window.__fx || {});
+ok((fx.confetti || 0) > 0, `confetti fired during the draft (${fx.confetti || 0} bursts)`);
+ok((fx.pick || 0) > 0, `the pick chime was triggered (${fx.pick || 0} times)`);
+ok((fx.fanfare || 0) === 1, 'the fanfare played exactly once at the result');
+// A phone that lands in the auto-assigned tail rightly gets no celebration,
+// and only 3 of the 4 phones can be in the tail — so at least one popped.
+let pops = 0;
+for (const { p } of phones) pops += await p.evaluate(() => window.__fx?.pop || 0);
+ok(pops >= 1, `at least one phone popped when its owner's chosen seat was confirmed (${pops} total)`);
+ok(await host.locator('#muteBtn').isVisible(), 'the mute button is on the big screen');
+ok(await host.locator('#resultMap .face-arrow').count() === 1, 'the facing arrow shows on the final map');
 
 console.log('\n— the final map —');
 ok(await host.locator('#resultMap .desk.taken').count() === 20, 'all 20 desks show an occupant');

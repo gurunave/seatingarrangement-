@@ -72,11 +72,13 @@ export function sanitizeLayout(input) {
     seen.add(cell);
     const name = String(d?.name ?? '').trim().slice(0, 12) || `${r + 1}-${c + 1}`;
     const reservedFor = String(d?.reservedFor ?? '').replace(/\s+/g, ' ').trim().slice(0, 24);
+    const facing = ['up', 'right', 'down', 'left'].includes(d?.facing) ? d.facing : '';
     desks.push({
       id: typeof d?.id === 'string' && d.id ? d.id.slice(0, 24) : `d${desks.length + 1}`,
       name, r, c,
       perk: Object.hasOwn(PERKS, d?.perk) ? d.perk : 'none',
-      ...(reservedFor ? { reservedFor } : {})
+      ...(reservedFor ? { reservedFor } : {}),
+      ...(facing ? { facing } : {})
     });
     if (desks.length >= 60) break;
   }

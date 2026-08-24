@@ -82,6 +82,17 @@ screen highlights them on the map and the room heckles. Tap one to claim it. If 
 clock runs out you get one of them anyway, so a phone in someone's pocket never
 stalls twenty people — and the host can skip a turn outright.
 
+**Celebrations.** Every chosen seat lands with a confetti burst from the desk's
+spot on the map, a chime, and a "Priya → B3" toast on the big screen; the final
+map gets a fanfare. The picker's own phone pops and vibrates. Sounds are
+synthesized in the browser (no audio files), a speaker button on the big screen
+mutes them, and confetti respects the reduced-motion preference. Auto-assigned
+seats get a quiet blip — a celebration would ring hollow.
+
+**Facing direction.** Each desk in `/setup` can be given the direction the
+person faces (▲▶▼◀). Arrows show on the editor, the live and final maps, and
+as triangles on the exported PNG — useful for knowing who sits back-to-back.
+
 **Reserved desks.** In `/setup`, give a desk a "Reserved for" name and it becomes
 permanently that person's: it never enters the draft, doesn't count toward
 capacity, and shows its owner on every map including the exported PNG.

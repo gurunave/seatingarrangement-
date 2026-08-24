@@ -3,6 +3,7 @@
 import { connect, errorText } from '/net.js';
 import { renderMap, PERK_SHORT } from '/map.js';
 import { adminFetch } from '/admin.js';
+import { armAudio, setMuted, isMuted, playPick, playAuto, playFanfare, confetti } from '/fx.js';
 import { downloadMapImage, seatingList } from '/mapimage.js';
 
 const $ = id => document.getElementById(id);
@@ -20,6 +21,7 @@ let revealStep = 'board';
 start();
 
 async function start() {
+  armAudio();
   net = connect({ onMessage, onStatus });
   wire();
 
@@ -34,6 +36,12 @@ async function start() {
 }
 
 function wire() {
+  $('muteBtn').addEventListener('click', () => {
+    setMuted(!isMuted());
+    renderMuteBtn();
+  });
+  renderMuteBtn();
+
   $('createBtn').addEventListener('click', createRoom);
   $('toggleManage').addEventListener('click', () => {
     managing = !managing;
@@ -318,10 +326,63 @@ function renderDraft() {
     assignments: d.assignments,
     offered: d.current ? d.current.options.map(o => o.id) : []
   });
+  celebrateNewPicks(d);
 }
 
 const PERK_LABELS = { window: 'Window', corner: 'Corner', quiet: 'Quiet', social: 'Social hub', meh: 'Near the AC' };
 const perkLabel = p => PERK_LABELS[p] || '';
+
+function renderMuteBtn() {
+  $('muteBtn').textContent = isMuted() ? '🔇' : '🔊';
+  $('muteBtn').title = isMuted() ? 'Sound off — click to unmute' : 'Sound on — click to mute';
+}
+
+// Celebrate every seat that lands on the map.
+let celebrated = new Set();
+let resultCelebrated = false;
+let toastTimer = null;
+
+function celebrateNewPicks(draft) {
+  // A reloaded big screen sees every existing assignment at once — mark them
+  // seen silently rather than replaying a burst per historical pick.
+  if (celebrated.size === 0 && draft.assignments.length > 1) {
+    draft.assignments.forEach(a => celebrated.add(a.deskId));
+    return;
+  }
+
+  const deskById = new Map(state.layout.desks.map(d => [d.id, d]));
+  for (const a of draft.assignments) {
+    if (celebrated.has(a.deskId)) continue;
+    celebrated.add(a.deskId);
+
+    const desk = deskById.get(a.deskId);
+    if (a.auto) {
+      playAuto();
+    } else {
+      playPick();
+      confetti({ count: 80, origin: originOfDesk(a.deskId) });
+      showToast(`${a.name} → ${desk?.name ?? ''}`);
+    }
+  }
+}
+
+// Burst from where the desk sits on screen, so the confetti points at the map.
+function originOfDesk(deskId) {
+  const el = document.querySelector(`#draftMap .desk[data-id="${deskId}"]`);
+  if (!el) return { x: 0.65, y: 0.4 };
+  const r = el.getBoundingClientRect();
+  return { x: (r.left + r.width / 2) / innerWidth, y: (r.top + r.height / 2) / innerHeight };
+}
+
+function showToast(text) {
+  const el = $('pickToast');
+  el.textContent = text;
+  el.classList.remove('show');
+  void el.offsetWidth;   // restart the CSS animation
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 2600);
+}
 
 let pickTimer = null;
 let pickDeadline = 0;
@@ -346,6 +407,13 @@ function renderResult() {
   stopClock();
   stopPickClock();
   show('resultView');
+
+  if (!resultCelebrated) {
+    resultCelebrated = true;
+    playFanfare();
+    confetti({ count: 160, origin: { x: 0.3, y: 0.25 }, spread: 1.4 });
+    confetti({ count: 160, origin: { x: 0.7, y: 0.25 }, spread: 1.4 });
+  }
 
   renderMap($('resultMap'), state.layout, { assignments: state.draft.assignments });
 

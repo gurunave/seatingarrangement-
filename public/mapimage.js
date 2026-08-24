@@ -67,6 +67,8 @@ export function drawMap(canvas, layout, assignments) {
     ctx.font = '700 14px ui-monospace, Menlo, monospace';
     ctx.fillText(desk.name.toUpperCase(), x + CELL / 2, y + 30);
 
+    if (desk.facing) drawFacing(ctx, desk.facing, x, y);
+
     if (seat) {
       ctx.fillStyle = COLORS.ink;
       fitText(ctx, seat.name, CELL - 20, 24, x + CELL / 2, y + CELL / 2 + 12);
@@ -83,6 +85,25 @@ export function drawMap(canvas, layout, assignments) {
   );
 
   return canvas;
+}
+
+// A small triangle in the desk's corner showing which way the person faces.
+function drawFacing(ctx, facing, x, y) {
+  const cx = x + CELL - 22, cy = y + 24, r = 7;
+  const points = {
+    up:    [[cx, cy - r], [cx - r, cy + r], [cx + r, cy + r]],
+    down:  [[cx, cy + r], [cx - r, cy - r], [cx + r, cy - r]],
+    left:  [[cx - r, cy], [cx + r, cy - r], [cx + r, cy + r]],
+    right: [[cx + r, cy], [cx - r, cy - r], [cx - r, cy + r]]
+  }[facing];
+  if (!points) return;
+  ctx.beginPath();
+  ctx.moveTo(...points[0]);
+  ctx.lineTo(...points[1]);
+  ctx.lineTo(...points[2]);
+  ctx.closePath();
+  ctx.fillStyle = COLORS.accent;
+  ctx.fill();
 }
 
 // Shrink a name until it fits its desk rather than letting it spill out.

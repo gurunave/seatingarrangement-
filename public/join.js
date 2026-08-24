@@ -1,6 +1,7 @@
 // The phone. It has one job right now — get you into the lobby and keep you
 // there through a screen lock, a refresh, or a WiFi wobble.
 import { connect, errorText } from '/net.js';
+import { armAudio, playPop, confetti } from '/fx.js';
 
 const $ = id => document.getElementById(id);
 const SAVED = 'seatdraft.session';
@@ -14,6 +15,7 @@ let me = null;   // { code, playerId, name }
 start();
 
 function start() {
+  armAudio();
   // A code in the URL (?c=ABCD, or a /?ABCD-style share link) saves 20 people
   // typing it wrong off a projector.
   const fromUrl = (new URLSearchParams(location.search).get('c') || '').toUpperCase().replace(/[^A-Z]/g, '');
@@ -213,12 +215,20 @@ function claim(deskId) {
   net.send({ type: 'draft:pick', code: me.code, deskId });
 }
 
+let seatCelebrated = false;
+
 function renderSeated(state, final = true) {
   stopTurnClock();
   turnOptions = [];
   const seat = state.draft?.assignments.find(a => a.playerId === me?.playerId);
   const desk = seat && (state.layout.desks || []).find(d => d.id === seat.deskId);
   if (!desk) return;
+
+  if (!seatCelebrated && !seat.auto) {
+    seatCelebrated = true;
+    playPop();
+    confetti({ count: 60, origin: { x: 0.5, y: 0.35 } });
+  }
 
   $('mySeat').textContent = desk.name;
   $('mySeatPerk').textContent = PERK_LABELS[desk.perk] || 'Standard desk';

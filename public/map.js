@@ -11,6 +11,8 @@ export function bounds(desks) {
   return { minR, maxR, minC, maxC, rows: maxR - minR + 1, cols: maxC - minC + 1 };
 }
 
+export const FACE_ARROW = { up: '▲', right: '▶', down: '▼', left: '◀' };
+
 export const PERK_SHORT = {
   window: 'W', corner: 'C', quiet: 'Q', social: 'S', meh: '!', none: ''
 };
@@ -47,9 +49,11 @@ export function renderMap(el, layout, { assignments = [], offered = [], taken = 
       if (offeredSet.has(desk.id)) classes.push('offered');
       if (taken === desk.id) classes.push('just-taken');
 
+      const arrow = FACE_ARROW[desk.facing]
+        ? `<span class="face-arrow">${FACE_ARROW[desk.facing]}</span>` : '';
       cells.push(
         `<div class="${classes.join(' ')}" data-perk="${desk.perk}" data-id="${desk.id}">
-           <span class="dname">${esc(desk.name)}</span>
+           ${arrow}<span class="dname">${esc(desk.name)}</span>
            ${seat ? `<span class="who">${esc(seat.name)}</span>`
                   : `<span class="perk">${PERK_SHORT[desk.perk] || ''}</span>`}
          </div>`

@@ -52,6 +52,14 @@ function wireEvents() {
     render();
   });
 
+  $('deskFacing').addEventListener('change', e => {
+    const desk = selected();
+    if (!desk) return;
+    if (e.target.value) desk.facing = e.target.value; else delete desk.facing;
+    markDirty();
+    renderMap();
+  });
+
   $('deskReserved').addEventListener('input', e => {
     const desk = selected();
     if (!desk) return;
@@ -162,7 +170,7 @@ function renderMap() {
         : short ? `<span class="perk">${esc(short)}</span>` : '';
       cells.push(
         `<div class="${cls.join(' ')}" data-r="${r}" data-c="${c}" data-perk="${desk.perk}" title="${esc(desk.reservedFor ? `Reserved for ${desk.reservedFor}` : perks[desk.perk]?.label || '')}">
-           <span>${esc(desk.name)}</span>${sub}
+           ${faceArrow(desk.facing)}<span>${esc(desk.name)}</span>${sub}
          </div>`
       );
     }
@@ -184,6 +192,7 @@ function renderSidebar() {
     if ($('deskName').value !== desk.name) $('deskName').value = desk.name;
     $('deskPerk').value = desk.perk;
     if ($('deskReserved').value !== (desk.reservedFor || '')) $('deskReserved').value = desk.reservedFor || '';
+    $('deskFacing').value = desk.facing || '';
     $('move').textContent = movingId ? 'Cancel move' : 'Move to another square';
   }
 }
@@ -223,6 +232,9 @@ function notice(text, kind) {
   clearTimeout(noticeTimer);
   noticeTimer = setTimeout(() => el.classList.add('hidden'), 4000);
 }
+
+const FACE = { up: '▲', right: '▶', down: '▼', left: '◀' };
+const faceArrow = f => FACE[f] ? `<span class="face-arrow">${FACE[f]}</span>` : '';
 
 const esc = s => String(s).replace(/[&<>"']/g, ch =>
   ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));

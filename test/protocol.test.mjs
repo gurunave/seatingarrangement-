@@ -19,7 +19,7 @@ console.log('\n— layout sanitising —');
 r = await fetch(`${BASE}/api/layout`, {
   method: 'POST', headers: { 'content-type': 'application/json' },
   body: JSON.stringify({ windowSide: 'left', desks: [
-    { id: 'a', name: 'Win', r: 0, c: 0, perk: 'window' },
+    { id: 'a', name: 'Win', r: 0, c: 0, perk: 'window', facing: 'up', reservedFor: '  Naveen  ' },
     { id: 'b', name: 'Dup', r: 0, c: 0, perk: 'none' },        // same cell — must be dropped
     { id: 'c', name: 'Far', r: 99, c: 99, perk: 'nonsense' },  // out of grid + bad perk
     { id: 'd', name: '   ', r: 2, c: 2 }
@@ -31,6 +31,15 @@ ok(saved.desks[1].r === 6 && saved.desks[1].c === 9, 'out-of-grid desk clamped i
 ok(saved.desks[1].perk === 'none', 'unknown perk reset to none');
 ok(saved.desks[2].name === '3-3', 'blank desk name given a fallback');
 ok(saved.windowSide === 'left', 'window side persisted');
+ok(saved.desks[0].facing === 'up', 'facing direction round-trips');
+ok(saved.desks[0].reservedFor === 'Naveen', 'reservation is trimmed and kept');
+ok(!('facing' in saved.desks[1]), 'desks without a facing stay clean');
+
+r = await fetch(`${BASE}/api/layout`, {
+  method: 'POST', headers: { 'content-type': 'application/json' },
+  body: JSON.stringify({ desks: [{ id: 'x', name: 'X', r: 0, c: 0, facing: 'sideways' }] })
+});
+ok(!('facing' in (await r.json()).layout.desks[0]), 'an invalid facing is dropped');
 
 console.log('\n— room with too few desks still creates, empty layout refuses —');
 await fetch(`${BASE}/api/layout`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{"desks":[]}' });

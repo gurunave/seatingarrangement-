@@ -12,6 +12,11 @@
   .cell.empty:hover { background: rgba(77,157,255,.12); border-color: rgba(77,157,255,.4); }
   .desk.selected { outline: 2px solid var(--accent); outline-offset: 2px; }
   .desk.moving { opacity: .4; }
+  .desk { position: relative; }
+  .face-arrow {
+    position: absolute; top: 3px; right: 5px;
+    font-size: 10px; color: var(--accent); line-height: 1;
+  }
   .desk.reserved { background: #3a3446; border-color: #7a6f96; }
   .desk.reserved .perk { color: #b9a9e0; }
   .count { font-size: 34px; font-weight: 700; letter-spacing: -.02em; }
@@ -70,6 +75,16 @@
         <div>
           <label class="field-label" for="deskPerk">Tag</label>
           <select id="deskPerk"></select>
+        </div>
+        <div>
+          <label class="field-label" for="deskFacing">Facing (which way the person looks)</label>
+          <select id="deskFacing">
+            <option value="">Not set</option>
+            <option value="up">▲ Faces top of the map</option>
+            <option value="right">▶ Faces right</option>
+            <option value="down">▼ Faces bottom</option>
+            <option value="left">◀ Faces left</option>
+          </select>
         </div>
         <div>
           <label class="field-label" for="deskReserved">Reserved for (always this person's desk)</label>
