@@ -352,6 +352,16 @@ const heartbeat = setInterval(() => {
 }, 30000);
 wss.on('close', () => clearInterval(heartbeat));
 
-server.listen(PORT, () => {
+server.listen(PORT, async () => {
   console.log(`Seat Draft on http://localhost:${PORT}  (setup: /setup, big screen: /host)`);
+  // Also print the LAN addresses: phones can't reach "localhost", and the QR
+  // code encodes whatever address the big screen was opened on — so the host
+  // page should be opened via one of these.
+  const { networkInterfaces } = await import('node:os');
+  const lan = Object.values(networkInterfaces()).flat()
+    .filter(i => i && i.family === 'IPv4' && !i.internal)
+    .map(i => i.address);
+  for (const ip of lan) {
+    console.log(`  on your network: http://${ip}:${PORT}   <- open THIS on the big screen so the QR works`);
+  }
 });

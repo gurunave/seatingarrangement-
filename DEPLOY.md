@@ -29,6 +29,25 @@ run `./deploy/install.sh` — it installs the local checkout instead of cloning.
 
 To change port or paths: `PORT=8080 APP_DIR=/srv/seat-draft sh deploy/install.sh`.
 
+## Option W — a Windows laptop (no server at all)
+
+1. Install **Node.js**: download the LTS installer from <https://nodejs.org>
+   and click through it (defaults are fine).
+2. Download the code as a ZIP (no git needed):
+   `https://github.com/gurunave/seatingarrangement-/archive/refs/heads/claude/team-seating-game-98ldlr.zip`
+   — right-click → Extract All.
+3. Double-click **`start.bat`** in the extracted folder. First run installs
+   dependencies, then the server starts and prints two addresses.
+4. When Windows Defender Firewall asks, click **Allow** (tick *Private
+   networks*) — otherwise phones can't reach the laptop.
+5. On the laptop's browser open the **"on your network"** address it printed
+   (e.g. `http://192.168.1.42:3000/host`) — use that one, not `localhost`,
+   because the QR code encodes whatever address the page was opened on and
+   phones can't reach "localhost".
+
+Keep the window open during the game; closing it stops the server. Your room
+layout is saved in the folder's `data\layout.json`, so it survives restarts.
+
 ## Option A — Docker (if your server already runs Docker)
 
 ```bash
