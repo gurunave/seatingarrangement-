@@ -2,7 +2,32 @@
 
 The app is one Node process on one port. It needs Node 18+, and writes exactly
 one file (`data/layout.json` — your saved room layout) that should survive
-restarts. Pick **one** of the two options.
+restarts. Pick **one** of the options below.
+
+## Option 0 — LXC container (Proxmox / LXD): the simplest of all
+
+An LXC **is** already a container, so skip Docker — nesting it inside LXC adds
+setup for no benefit. Create a minimal container and run one script:
+
+1. Create the container: Debian 12 or Ubuntu 22.04+ template, **512 MB RAM /
+   4 GB disk is plenty**, unprivileged is fine, give it a network address.
+2. Inside it, as root:
+
+   ```bash
+   apt update && apt install -y curl
+   curl -fsSL https://raw.githubusercontent.com/gurunave/seatingarrangement-/claude/team-seating-game-98ldlr/deploy/install.sh | sh
+   ```
+
+That installs Node from the distro's own packages (Debian 12 and Ubuntu 24.04
+both ship Node 18+ — no third-party repo needed), fetches the app to
+`/opt/seat-draft`, creates a locked-down `seatdraft` service user, installs the
+systemd service, starts it, and prints the three URLs. **Safe to re-run any
+time** — that's also how you upgrade.
+
+Prefer to read before you pipe to sh? Clone the repo inside the container and
+run `./deploy/install.sh` — it installs the local checkout instead of cloning.
+
+To change port or paths: `PORT=8080 APP_DIR=/srv/seat-draft sh deploy/install.sh`.
 
 ## Option A — Docker (if your server already runs Docker)
 

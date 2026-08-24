@@ -97,7 +97,7 @@ different pace.
 
 One Node process, no build step, no database. It runs anywhere Node 18+ runs.
 
-- **Your own server** (Docker, or plain Node + systemd, with optional nginx in
+- **Your own server** (an LXC one-liner, Docker, or plain Node + systemd, with optional nginx in
   front): see **[DEPLOY.md](DEPLOY.md)** — the Dockerfile, compose file, systemd
   unit and nginx config are all in the repo.
 - **A hosting platform** (Render/Railway/Fly, if you have no server): build
