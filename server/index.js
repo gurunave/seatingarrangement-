@@ -8,7 +8,8 @@ import { loadLayout, saveLayout, sanitizeLayout, defaultLayout, GRID, PERKS } fr
 import {
   createRoom, getRoom, addPlayer, removePlayer, broadcast, publicState,
   normalizeName, nameTaken, sweepRooms, MAX_PLAYERS,
-  startSprint, endSprint, recordAnswer, currentQuestion, pendingPlayers
+  startSprint, endSprint, recordAnswer, currentQuestion, pendingPlayers,
+  startDraft, applyPick, skipTurn
 } from './room.js';
 import { publicQuestion } from './sprint.js';
 
@@ -191,8 +192,20 @@ function handleMessage(ws, msg) {
       return;
     }
 
+    case 'draft:pick': {
+      if (room.phase !== 'draft') return reply(ws, { type: 'error', code: 'not_in_draft' });
+      if (ws.role !== 'player' || ws.roomCode !== room.code) {
+        return reply(ws, { type: 'error', code: 'unknown_player' });
+      }
+      const result = applyPick(room, ws.playerId, String(msg.deskId));
+      if (!result.ok) return reply(ws, { type: 'error', code: result.reason });
+      return;   // applyPick broadcasts the new state to everyone
+    }
+
     case 'host:start':
     case 'host:endSprint':
+    case 'host:startDraft':
+    case 'host:skipTurn':
     case 'host:addPlayer':
     case 'host:removePlayer':
     case 'host:renamePlayer':
@@ -222,6 +235,23 @@ function handleHostAction(ws, room, msg) {
   if (msg.type === 'host:endSprint') {
     if (room.phase !== 'sprint') return reply(ws, { type: 'error', code: 'not_in_sprint' });
     endSprint(room);
+    return;
+  }
+
+  if (msg.type === 'host:startDraft') {
+    if (room.phase !== 'reveal') return reply(ws, { type: 'error', code: 'not_ready_to_draft' });
+    if (room.layout.desks.length < room.players.size) {
+      return reply(ws, { type: 'error', code: 'not_enough_desks' });
+    }
+    startDraft(room);
+    console.log(`room ${room.code} started the draft for ${room.players.size} people`);
+    broadcast(room);
+    return;
+  }
+
+  if (msg.type === 'host:skipTurn') {
+    if (room.phase !== 'draft') return reply(ws, { type: 'error', code: 'not_in_draft' });
+    if (!skipTurn(room)) return reply(ws, { type: 'error', code: 'nobody_picking' });
     return;
   }
 

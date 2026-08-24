@@ -5,7 +5,8 @@ import { connect, errorText } from '/net.js';
 const $ = id => document.getElementById(id);
 const SAVED = 'seatdraft.session';
 // Declared up here so show() is safe to call from the moment the module runs.
-const VIEWS = ['joinView', 'lobbyView', 'sprintView', 'waitView', 'resultView', 'doneView'];
+const VIEWS = ['joinView', 'lobbyView', 'sprintView', 'waitView', 'resultView',
+               'draftWaitView', 'turnView', 'seatedView', 'doneView'];
 
 let net = null;
 let me = null;   // { code, playerId, name }
@@ -73,7 +74,9 @@ function onMessage(msg) {
       $('joinBtn').disabled = false;
       // A sprint:question or sprint:done follows immediately when the game is
       // already running, so only claim the lobby if we're actually in it.
-      if ($('sprintView').classList.contains('hidden')) show('lobbyView');
+      if ($('sprintView').classList.contains('hidden') && $('turnView').classList.contains('hidden')) {
+        show('lobbyView');
+      }
       break;
 
     case 'state':
@@ -116,6 +119,10 @@ function onMessage(msg) {
         answering = false;
         return;   // the server's next question message is the source of truth
       }
+      if (msg.code === 'not_your_turn' || msg.code === 'seat_not_offered' || msg.code === 'not_in_draft') {
+        turnOptions = [];   // force a rebuild from the next state we're sent
+        return;
+      }
       showError(errorText(msg.code));
       break;
   }
@@ -143,8 +150,100 @@ function onState(state) {
   if (state.phase === 'reveal' && state.results) {
     stopClock();
     renderMyResult(state.results, state.questionTotal ?? 10);
+    return;
   }
+
+  if (state.phase === 'draft') return renderDraft(state);
+  if (state.phase === 'result') return renderSeated(state);
 }
+
+/* -------------------------------------------------------------------- draft */
+
+const PERK_LABELS = {
+  window: 'By the window', corner: 'Corner desk', quiet: 'Quiet spot',
+  social: 'Social hub', meh: 'Near the AC', none: ''
+};
+
+function renderDraft(state) {
+  stopClock();
+  const d = state.draft;
+  const mine = d.current && d.current.playerId === me?.playerId;
+
+  // Already seated while others are still picking.
+  const seat = d.assignments.find(a => a.playerId === me?.playerId);
+  if (seat && !mine) return renderSeated(state, false);
+
+  if (mine) {
+    renderTurn(d.current);
+    return;
+  }
+
+  stopTurnClock();
+  const myTier = (state.tiers || []).find(t => t.players.some(p => p.id === me?.playerId));
+  $('myTier').textContent = myTier ? `Tier ${myTier.tier} — ${myTier.options} desks to choose from` : 'Waiting';
+  $('whoPicking').textContent = d.current ? d.current.name : 'Seating the rest…';
+  $('seatedCount').textContent = d.index;
+  $('seatTotal').textContent = d.total;
+  show('draftWaitView');
+}
+
+let turnOptions = [];
+
+function renderTurn(current) {
+  // Re-rendering on every broadcast would wipe a tap mid-flight; the options
+  // for one turn never change, so only build them once.
+  const ids = current.options.map(o => o.id).join(',');
+  if (ids !== turnOptions.join(',')) {
+    turnOptions = current.options.map(o => o.id);
+    $('seatOpts').innerHTML = current.options.map(o => `
+      <button class="seat-opt" data-id="${o.id}">
+        <span class="nm">${esc(o.name)}</span>
+        <span class="pk">${PERK_LABELS[o.perk] || 'Standard desk'}</span>
+      </button>`).join('');
+    $('seatOpts').querySelectorAll('.seat-opt').forEach(btn => {
+      btn.addEventListener('click', () => claim(btn.dataset.id), { once: true });
+    });
+  }
+  startTurnClock(current.msLeft);
+  show('turnView');
+}
+
+function claim(deskId) {
+  $('seatOpts').querySelectorAll('.seat-opt').forEach(b => { b.disabled = true; });
+  net.send({ type: 'draft:pick', code: me.code, deskId });
+}
+
+function renderSeated(state, final = true) {
+  stopTurnClock();
+  turnOptions = [];
+  const seat = state.draft?.assignments.find(a => a.playerId === me?.playerId);
+  const desk = seat && (state.layout.desks || []).find(d => d.id === seat.deskId);
+  if (!desk) return;
+
+  $('mySeat').textContent = desk.name;
+  $('mySeatPerk').textContent = PERK_LABELS[desk.perk] || 'Standard desk';
+  $('mySeatNote').textContent = seat.auto
+    ? 'Assigned automatically — better luck next quarter.'
+    : final ? 'See the big screen for the full map.' : 'Sit tight while everyone else picks.';
+  show('seatedView');
+}
+
+let turnTimer = null;
+let turnDeadline = 0;
+
+function startTurnClock(msLeft) {
+  turnDeadline = Date.now() + Math.max(0, msLeft ?? 0);
+  if (turnTimer) return;
+  const tick = () => {
+    const secs = Math.ceil(Math.max(0, turnDeadline - Date.now()) / 1000);
+    $('turnClock').textContent = secs;
+    $('turnClock').classList.toggle('low', secs <= 5);
+  };
+  tick();
+  turnTimer = setInterval(tick, 200);
+}
+
+function stopTurnClock() { clearInterval(turnTimer); turnTimer = null; }
 
 function renderMyResult(results, total) {
   const mine = results.find(r => r.id === me?.playerId);
@@ -256,3 +355,6 @@ function readSaved() {
     return s?.code && s?.playerId ? s : null;
   } catch { return null; }
 }
+
+const esc = s => String(s).replace(/[&<>"']/g, ch =>
+  ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));

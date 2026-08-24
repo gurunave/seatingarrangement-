@@ -57,6 +57,12 @@ export const ERRORS = {
   need_players: 'You need at least two people with phones to start.',
   out_of_step: 'That answer arrived out of order — showing your current question.',
   already_finished: "You've already finished the sprint.",
+  not_in_draft: 'The draft is not running.',
+  not_ready_to_draft: 'The draft can only start after the sprint.',
+  not_enough_desks: 'There are fewer desks than people — add more in setup.',
+  not_your_turn: "It isn't your turn yet.",
+  seat_not_offered: 'That desk was not one of your options.',
+  nobody_picking: 'Nobody is picking right now.',
   server_error: 'Something went wrong. Try again.'
 };
 

@@ -52,6 +52,27 @@
   /* --- your result --- */
   .rank-num { font-size: 64px; font-weight: 800; letter-spacing: -.04em; line-height: 1; }
   .score-line { font-size: 20px; font-weight: 700; }
+
+  /* --- draft --- */
+  .tier-badge {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: rgba(77,157,255,.14); border: 1px solid var(--accent);
+    color: var(--accent); border-radius: 999px; padding: 7px 15px;
+    font-weight: 700; font-size: 14px;
+  }
+  #turnView .panel { min-height: calc(100dvh - 44px); display: flex; flex-direction: column; gap: 14px; }
+  .turn-clock { font-family: var(--mono); font-size: 40px; font-weight: 800; }
+  .turn-clock.low { color: var(--bad); }
+  .seat-opts { flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 12px; }
+  .seat-opt {
+    display: flex; flex-direction: column; align-items: center; gap: 5px;
+    padding: 22px 12px; border-radius: 14px; font-weight: 700;
+    border: 1px solid var(--accent); background: rgba(77,157,255,.09); color: var(--ink);
+  }
+  .seat-opt .nm { font-size: 27px; letter-spacing: -.02em; }
+  .seat-opt .pk { font-size: 13px; font-weight: 600; color: var(--ink-dim); }
+  .seat-opt:disabled { opacity: .4; }
+  .my-seat { font-size: 52px; font-weight: 800; letter-spacing: -.03em; line-height: 1; }
 </style>
 </head>
 <body>
@@ -137,6 +158,38 @@
       <div id="myScore" class="score-line"></div>
       <div id="myTime" class="muted small"></div>
       <p class="muted small" style="margin-top:8px">Watch the big screen for the tiers.</p>
+    </div>
+  </section>
+
+  <!-- waiting for your turn -->
+  <section id="draftWaitView" class="stack hidden">
+    <div class="panel center stack" style="gap:14px; padding:30px 20px">
+      <div id="myTier" class="tier-badge" style="align-self:center"></div>
+      <div class="muted small" style="font-weight:600; letter-spacing:.1em; margin-top:6px">PICKING NOW</div>
+      <div class="big-name" id="whoPicking">—</div>
+      <p class="muted small"><span id="seatedCount">0</span> of <span id="seatTotal">0</span> seated. Your turn is coming.</p>
+    </div>
+  </section>
+
+  <!-- your turn -->
+  <section id="turnView" class="stack hidden">
+    <div class="panel">
+      <div class="row spread">
+        <span style="font-weight:800; font-size:19px">Your pick</span>
+        <span id="turnClock" class="turn-clock">15</span>
+      </div>
+      <div class="seat-opts" id="seatOpts"></div>
+      <p class="muted small center">Tap a desk to claim it. If the clock runs out you'll get one of these anyway.</p>
+    </div>
+  </section>
+
+  <!-- your desk -->
+  <section id="seatedView" class="stack hidden">
+    <div class="panel center stack" style="gap:12px; padding:34px 20px">
+      <div class="muted small" style="font-weight:600; letter-spacing:.1em">YOUR DESK</div>
+      <div id="mySeat" class="my-seat">—</div>
+      <div id="mySeatPerk" class="muted"></div>
+      <div id="mySeatNote" class="muted small" style="margin-top:8px"></div>
     </div>
   </section>
 

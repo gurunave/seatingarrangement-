@@ -6,16 +6,16 @@ big screen: the projector shows the drama, the phones are the controllers.
 
 ## Status
 
-Phases 1–2 are built and tested — **setup, join, and the maths sprint**.
+All five phases are built and tested. The game is playable end to end.
 
 | Phase | What it does | State |
 |---|---|---|
 | Setup | Manager lays out the desks; saved between runs | ✅ built |
 | Join | Room code, phones join, live roster on the big screen | ✅ built |
 | Sprint | 10 timed maths questions, everyone at once | ✅ built |
-| Reveal | Leaderboard ✅ — tiers and the shuffle still to come | 🚧 partial |
-| Draft | Pick a desk; better rank = more options; last 3 auto-assigned | ⏳ |
-| Result | Final map as a shareable image, plus the leaderboard | ⏳ |
+| Reveal | Leaderboard, then four tiers with the order shuffled inside each | ✅ built |
+| Draft | Pick a desk; better tier = more options; the tail is auto-assigned | ✅ built |
+| Result | Final map, downloadable as a PNG, plus the leaderboard | ✅ built |
 
 ## Running it
 
@@ -56,19 +56,38 @@ on total elapsed time, so speed only counts once you're right.
   and the answer is spread evenly across the four slots so tapping the same
   position blind is no strategy at all.
 
-## How the rest of the game works
+## The reveal and the draft
 
-Score on the maths sprint sets your **tier**; order **within** your tier is random.
-Being fast gets you more to choose from, but never guarantees you pick first — that
-randomness is deliberate, so the same quick people don't win every quarter.
+Score sets your **tier**; order **within** your tier is drawn at random. Being fast
+gets you more to choose from, but never guarantees you pick first — that randomness
+is deliberate, so the same quick people don't take the best desk every quarter.
 
-| Tier | Ranks | Desks offered |
+| Tier | Ranks (of 20) | Desks offered |
 |---|---|---|
 | 1 | 1–5 | 4 |
 | 2 | 6–10 | 3 |
 | 3 | 11–15 | 2 |
-| 4 | 16–17 | 2 |
-| — | 18–20 | auto-assigned |
+| 4 | 16–20 | 2 |
+
+Tiers split the room as evenly as four groups allow, so it works for any headcount:
+20 → 5/5/5/5, 18 → 5/5/4/4, 6 → 2/2/1/1.
+
+**On your turn** your phone shows your desks and a 15-second countdown while the big
+screen highlights them on the map and the room heckles. Tap one to claim it. If the
+clock runs out you get one of them anyway, so a phone in someone's pocket never
+stalls twenty people — and the host can skip a turn outright.
+
+**The tail is auto-assigned.** With 20 desks for 20 people the last three have nothing
+to decide between, so the room doesn't sit through the ceremony. Every spare desk
+hands one of them a real choice back: 21 desks means only two are auto-assigned, and
+at 23 everybody picks.
+
+**At the end** the map fills in with names — chosen desks in blue, auto-assigned in
+purple, window desks outlined — and downloads as a PNG for Slack. *Copy the list*
+puts a desk-and-name list on your clipboard.
+
+Override the timers with `DRAFT_SECONDS` and `SPRINT_SECONDS` if your team wants a
+different pace.
 
 ## Deploying
 
@@ -99,8 +118,8 @@ takes a minute to redo in `/setup`; if that matters, attach a persistent volume.
 ## Tests
 
 ```bash
-npm test           # 102 tests — boots servers on scratch ports
-npm run test:ui    # 58 browser tests (needs: npm i -D playwright)
+npm test           # 150 tests — boots servers on scratch ports
+npm run test:ui    # 85 browser tests (needs: npm i -D playwright)
 ```
 
 | Suite | Covers |
@@ -108,5 +127,6 @@ npm run test:ui    # 58 browser tests (needs: npm i -D playwright)
 | `questions` | 5,000 generated questions: distinct options, plausible distractors, no positional tell |
 | `protocol` | Joining, validation, host auth, reconnection, the manual-add flow |
 | `sprint` | Scoring, ranking, the answer key never reaching a phone, out-of-step answers, mid-sprint reconnect |
-| `sprint-timeout` | The sprint's own deadline, against a server run with a short limit |
-| `ui` / `ui-sprint` | Real Chromium: the editor, the big screen, and several phones playing at once |
+| `draft` | Tier maths, the within-tier shuffle actually varying, turn order, illegal picks, the auto-assigned tail |
+| `sprint-timeout` / `draft-timeout` | Both deadlines, against servers run with short limits |
+| `ui` / `ui-sprint` / `ui-draft` | Real Chromium: a full 20-person game from setup to the exported PNG |
