@@ -95,17 +95,18 @@ different pace.
 
 ## Deploying
 
-One Node process, no build step, no database. It runs anywhere Node runs.
+One Node process, no build step, no database. It runs anywhere Node 18+ runs.
 
-- **Hosted** (recommended): deploy to Render/Railway/Fly. Build `npm install`, start
-  `npm start`, and the platform's `PORT` is picked up automatically. Everyone opens
-  one URL, on office WiFi or mobile data.
-- **Off your laptop**: `npm start`, then have people go to `http://<your-lan-ip>:3000`.
-  No internet needed — but **test it in the actual room first**, because guest WiFi
+- **Your own server** (Docker, or plain Node + systemd, with optional nginx in
+  front): see **[DEPLOY.md](DEPLOY.md)** — the Dockerfile, compose file, systemd
+  unit and nginx config are all in the repo.
+- **A hosting platform** (Render/Railway/Fly, if you have no server): build
+  `npm install`, start `npm start`; the platform's `PORT` is picked up
+  automatically. Their ephemeral disks reset `data/layout.json` on redeploy —
+  attach a persistent volume if redoing `/setup` each time would annoy you.
+- **Off your laptop**: `npm start`, phones go to `http://<your-lan-ip>:3000`.
+  No internet needed — but **test in the actual room first**; guest WiFi
   frequently blocks phone-to-laptop traffic.
-
-Note that hosts with ephemeral disks will reset `data/layout.json` on redeploy. It
-takes a minute to redo in `/setup`; if that matters, attach a persistent volume.
 
 ## Design notes
 

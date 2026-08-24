@@ -1,0 +1,33 @@
+# Systemd unit for running Seat Draft without Docker.
+#
+#   sudo cp deploy/seat-draft.service /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now seat-draft
+#
+# Adjust User and WorkingDirectory to where you cloned the repo.
+[Unit]
+Description=Seat Draft — team seating game
+After=network.target
+
+[Service]
+Type=simple
+User=www-data
+WorkingDirectory=/opt/seat-draft
+ExecStart=/usr/bin/node server/index.js
+Restart=on-failure
+RestartSec=3
+Environment=NODE_ENV=production
+Environment=PORT=3000
+# Uncomment to change the pace of the game:
+# Environment=SPRINT_SECONDS=120
+# Environment=DRAFT_SECONDS=20
+
+# The only thing the app writes is data/layout.json.
+ReadWritePaths=/opt/seat-draft/data
+ProtectSystem=strict
+ProtectHome=true
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,18 @@
+# docker compose up -d
+services:
+  seat-draft:
+    build: .
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    volumes:
+      # Keeps the saved room layout across restarts and image upgrades.
+      - seat-draft-data:/app/data
+    environment:
+      # Uncomment to change the pace of the game:
+      # SPRINT_SECONDS: "120"
+      # DRAFT_SECONDS: "20"
+      PORT: "3000"
+
+volumes:
+  seat-draft-data:
